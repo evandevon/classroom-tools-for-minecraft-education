@@ -1,0 +1,101 @@
+{
+	"namespace": "server_form",
+	"long_form": {
+		"modifications": [
+			{
+				"array_name": "bindings",
+				"operation": "insert_back",
+				"value": [
+					{
+						"binding_name": "#title_text"
+					}
+				]
+			}
+		]
+	},
+	"custom_form": {
+		"modifications": [
+			{
+				"array_name": "bindings",
+				"operation": "insert_back",
+				"value": [
+					{
+						"binding_name": "#title_text"
+					}
+				]
+			}
+		]
+	},
+	"edu_tools_form_background": {
+		"type": "panel",
+		"bindings": [
+			{
+				"binding_name": "#title_text"
+			}
+		],
+		"controls": [
+			{
+				"background": {
+					"type": "image",
+					"texture": "textures/edu_tools/ui/form_background",
+					"size": [
+						256,
+						256
+					],
+					"layer": 4,
+					"$title_needs_to_contain": "edu_tools.",
+					"bindings": [
+						{
+							"binding_type": "view",
+							"source_control_name": "edu_tools_form_background",
+							"source_property_name": "(not ((#title_text - $title_needs_to_contain) = #title_text))",
+							"target_property_name": "#visible"
+						}
+					]
+				}
+			},
+			{
+				"foreground": {
+					"type": "image",
+					"texture": "textures/edu_tools/ui/form_foreground",
+					"size": [
+						256,
+						256
+					],
+					"layer": 30,
+					"$title_needs_to_contain": "edu_tools.",
+					"bindings": [
+						{
+							"binding_type": "view",
+							"source_control_name": "edu_tools_form_background",
+							"source_property_name": "(not ((#title_text - $title_needs_to_contain) = #title_text))",
+							"target_property_name": "#visible"
+						}
+					]
+				}
+			}
+		]
+	},
+	"main_screen_content": {
+		"modifications": [
+			{
+				"array_name": "controls",
+				"operation": "insert_back",
+				"value": [
+					{
+						"educator_tools_server_form_factory": {
+							"type": "panel",
+							"factory": {
+								"name": "server_form_factory",
+								"control_ids": {
+									"long_form": "@server_form.edu_tools_form_background",
+									"custom_form": "@server_form.edu_tools_form_background"
+								}
+							}
+						}
+					}
+				]
+			}
+		]
+	}
+}

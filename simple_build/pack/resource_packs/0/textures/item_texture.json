@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "vanilla",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "edu_tools_educator_tool": {
+      "textures": "textures/edu_tools/items/educator_tool"
+    },
+    "edu_tools_build_marker": {
+      "textures": "textures/edu_tools/items/build_marker"
+    }
+  }
+}

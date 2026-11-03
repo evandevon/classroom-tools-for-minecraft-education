@@ -1,0 +1,3 @@
+node_modules/
+*.mcaddon
+pack/behavior_packs/0/scripts/edu_tools/main.js

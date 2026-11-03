@@ -1,0 +1,5 @@
+Simple Classroom Tools is a modified version of Educator Tools by Shapescape ApS
+(https://github.com/ShapescapeMC/Educator-Tools), used under the GNU LGPL v3.0.
+It is not made or endorsed by Shapescape. Changes: removed teams, nicknames, assignments,
+inventory, health, limitations, world settings, feedback prompts and letter blocks; added
+a single teacher, a student picker with Everybody, and time limits for freezes and locks.

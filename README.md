@@ -1,103 +1,186 @@
-<p align="center">
-  <img src="assets/educator_tools_logo.png" alt="Educator Tools Logo" width="150"/>
-</p>
+# Simple Classroom Tools
 
-# Educator Tools
+A simple classroom management add-on for Minecraft Education. Warn, freeze or lock students, run a visible timer, mark and visit student builds, and hold a safe class showcase.
 
-Welcome to **Educator Tools**, an open-source Minecraft Education Add-On developed by **Shapescape**. This tool aims to help teachers by adding **powerful classroom management features**, allowing them to easily control gameplay, improve engagement, and create structured learning environments.
+Simple Classroom Tools is a modified version of [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS. It is an independent project and is not made or endorsed by Shapescape.
 
-## Quick Start
+> **Testing status:** Try this add-on in a copy of your world with a student account before using it in a lesson. Minecraft Education updates can change how add-ons behave.
 
-To add **Educator Tools** to your world, follow these steps:
+## Contents
 
-1. **Download the .mcaddon File**  
-   The Educator Tools Add-On is packaged as a `.mcaddon` file. Download the latest version **[here](https://github.com/ShapescapeMC/Educator-Tools/releases/latest)**.
+- [Install](#install)
+- [Add it to a world](#add-it-to-a-world)
+- [Using the toolbox](#using-the-toolbox)
+- [Features](#features)
+- [Exporting or sharing a world](#exporting-or-sharing-a-world)
+- [Troubleshooting](#troubleshooting)
+- [Building from source](#building-from-source)
+- [What changed from Educator Tools](#what-changed-from-educator-tools)
+- [Licence](#licence)
 
-2. **Import into Minecraft Education**
+## Install
 
-   - Locate the `.mcaddon` file on your device.
-   - Open it with **Minecraft Education**.
-   - The add-on will automatically be imported in the game. Restart Minecraft Education if necessary.
+1. Open the [Releases](../../releases) page and download the latest `.mcaddon` file.
+2. Double-click the file. If asked, open it with **Minecraft Education**.
+3. Wait for the message saying the import was successful.
 
-3. **Enable the Add-On in a World**
-   - Open **Minecraft Education** and go to the **Play** menu.
-   - Select **Create New** or choose an existing world to edit.
-   - In **World Settings**, go to **Resource Packs** and **Behavior Packs**.
-   - Click **My Packs**, find **Educator Tools**, and activate the pack.
-   - Click **Create** or **Play** to start using the tools in your world.
+Students don't need to install anything. They download the pack when they join your world, if asked.
 
-## Key Features
+## Add it to a world
 
-The **Educator Tools** Add-On introduces several key functionalities for classroom management, including:
+Make a copy of your world first, because some packs can't be cleanly removed later.
 
-- **Educator Tool UI** – A reorganized, intuitive in-game menu accessible only by teachers (now supports multiple teachers).
-- **Teleport System** – Move players to specific locations, teleport students to each other, or bring the entire class together.
-- **Gamemode Management** – Instantly switch between Creative, Survival, Adventure, and now **Spectator Mode** for specific players or everyone.
-- **Custom Nicknames** – Assign and manage nicknames for students to enhance engagement and personalization.
-- **Assignments Tool** – Create tasks and let students submit their builds or work directly in-game.
-- **Team Management** – Create and manage teams to organize classroom activities and challenges.
-- **Focus Mode** – Temporarily pause students’ screens to regain attention or give instructions.
-- **Timer System** – Set a visible timer for structured activities with event-based notifications.
-- **World Settings Control** – Change weather, time, PvP, spawning, and more directly from the interface.
-- **Per-Player Location Lock** – Lock individual students to a position or area for controlled activities.
-- **Lock Players Mechanic** – Enhanced area locking with clearer boundaries for group control.
-- **Inventory Management** – Give, clear, copy, or standardize inventories; includes the original inventory copy functionality.
-- **Player Health Management UI** – Manage player health directly from a dedicated interface.
-- **Custom Letter & Number Blocks** – Letter, number, and symbol blocks for educational builds.
-- **More Letter Blocks Add-On** – Optional companion add-on adding hundreds of colorful new blocks.
-- **Advanced Letter Block Generation** – Generate letter images with custom sizes, anti-aliasing, grouping, and safe filenames.
+1. Go to **Play → View My Worlds**, then click the **pencil icon** next to the world.
+2. Scroll to **Add-Ons**, click **Behavior Packs**, then open **My Packs**.
+3. Select **Simple Classroom Tools** and click **Activate**.
+4. Check that it's also active under **Resource Packs**.
+5. If the world uses Educator Tools, deactivate that under both lists. The two add-ons share item IDs and shouldn't run together.
+6. **Open the world yourself first.** The first person to open it with the pack on becomes the teacher.
 
-## Usage
+To update, install the new file and check that the world lists the new version. If it still uses the old one, remove that and activate the new version. Students should then rejoin.
 
-Once installed, educators can use the **Educator Tool** item in their Minecraft world to access the in-game UI and manage gameplay seamlessly.
-For more details about the Add-On's features, visit our **[Wiki page](https://educator-tools.readthedocs.io/en/)**.
+## Using the toolbox
 
-## What's New in 2.0.0
+You get an **Educator Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
-Version 2 is a major update focused on expanding classroom control, improving clarity, and adding creative tools.
+Only the teacher can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes you, and for Warnings, Teleport and Gamemode it covers only students who are online.
 
-### Major Additions
+## Features
 
-- Multiple teacher support
-- Assignments Tool for in-game task workflow & submissions
-- Team Management system
-- Focus Mode to pause student interaction
-- Spectator Mode added to Gamemode Tool
-- Per-player location lock
-- Inventory Management suite (extends original copy tool)
-- Optional "More Letter Blocks" companion add-on
+### Give a Warning
 
-### Improved Experiences
+A reminder before any consequence. Choose students and send the default message, edit it, or clear it.
 
-- Reorganized UI for faster navigation
-- Upgraded area Lock Players mechanic with visible boundaries
-- Consolidated inventory actions into a unified interface
+- The student's screen flashes red, a sound plays, and they see **Warning 1** with your message.
+- Angry particles appear above their head for about 5 seconds, which other students can see.
+- Your list shows each student's warning count. Counts reset when the world is reopened.
 
-Looking for full details? Read the **[v2.0.0 Release Notes](https://github.com/ShapescapeMC/Educator-Tools/releases/tag/v2.0.0)**.
+### Focus Mode
 
-## Contributing
+Freezes students where they are. They can't move or build, can't be hurt, and their screen dims.
 
-We welcome contributions from the community! Check out our **[GitHub Wiki](https://educator-tools.readthedocs.io/en/stable/Contributing)** to get started.
+1. Choose **Focus Mode**, then tick students or **Everybody**.
+2. Choose a time limit or **Until I release them**.
+3. Add an optional message, and choose whether to stop them using chat.
 
-💡 Have a suggestion? Open a **[feature request](https://github.com/ShapescapeMC/Educator-Tools/issues)**.
+Everybody also covers students who join later. When someone is in Focus Mode, the menu offers **Add Students** and **Release Students**, and **End Focus Mode for Everybody** appears at the top of the main menu.
 
-## License
+### Lock to an Area
 
-Educator Tools is licensed under the **[LGPL v3 License](LICENSE)**.
+Keeps students within a set distance. They can still build inside the area. Students near the edge are pushed back, and students further out are teleported to the centre.
 
-## Support
+Choose students, then set:
 
-If you encounter issues or have questions, **[report an issue](https://github.com/ShapescapeMC/Educator-Tools/issues)** on our GitHub Issues page.
+- **How long:** a time limit or until you release them.
+- **Where:** around each student, around where you're standing, or following you.
+- **How far:** 5 to 150 blocks.
+- **Show the edge:** whether students see the boundary.
 
-## Languages
+**Unlock Students** releases some students, and **Unlock Everybody** appears on the main menu when anyone is locked. Your settings are remembered for next time.
 
-![American English](https://img.shields.io/badge/American_English-blue)
-![Dutch](https://img.shields.io/badge/Dutch-orange)
-![Polish](https://img.shields.io/badge/Polish-red)
-![Spanish](https://img.shields.io/badge/Spanish-yellow)
-![Latin American Spanish](https://img.shields.io/badge/Latin_American_Spanish-green)
-![Japanese](https://img.shields.io/badge/Japanese-purple)
-![Norwegian Bokmål](https://img.shields.io/badge/Norwegian_Bokm%C3%A5l-violet)
-![Italian](https://img.shields.io/badge/Italian-white)
-![Chinese](https://img.shields.io/badge/Chinese-gold)
-![Greek](https://img.shields.io/badge/Greek-royalblue)
+### Timer
+
+Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only you can control it.
+
+**When time is up** can do nothing, or put the class in Focus Mode for a set time or until you release them.
+
+### Build Markers
+
+Everybody gets a **Build Marker**, a red flag item. Using it places a flag labelled with their name, and using it again moves it, so each person has one.
+
+In your **Build Markers** menu, you can:
+
+- see which online students don't have a marker yet
+- use **Take Me There** or **Send Students There**
+- remove one marker or all of them
+
+### Start Showcase
+
+For a class tour of each other's work.
+
+While a showcase runs:
+
+- Students switch to Adventure mode, so they can't place or break blocks. You stay in your current mode.
+- Fighting, fall damage and TNT explosions are turned off.
+- Using the Build Marker opens a list of builds to teleport to, for you and students. Flags can't be placed or moved.
+
+**End Showcase** restores each student's game mode and the world rules.
+
+Adventure mode doesn't stop everything. Students can still open chests and use doors, buttons and levers. Only marked builds are listed, so check Build Markers first.
+
+### Teleport
+
+- **Just Me:** go to a student, a marker or typed coordinates, such as `100 64 -20`.
+- **Students:** send students to you, another student or a marker.
+- **Set World Spawn Point Here:** sets the Overworld spawn to where you're standing. Returning students normally appear where they left off, so this mainly affects first-time joiners and respawning players.
+
+### Gamemode
+
+Change game mode for selected students or Everybody. Students in Focus Mode are skipped, and this option is unavailable during a showcase.
+
+### Weather and Time
+
+Change the weather and time of day for the world.
+
+### Behaviour Log
+
+Records warnings, Focus Mode, locks, releases and time limits ending, with the student's name and time. It keeps the newest 200 events until you clear it.
+
+To copy it, choose **Copy Log**, click the box, then press **Ctrl+A** and **Ctrl+C**. Each page holds 25 events, and **Submit** opens the next page.
+
+The log contains information about students. Treat it as a prompt for your school's official records, check that it fits your school's policies, and clear it before sharing a world.
+
+## Exporting or sharing a world
+
+Exporting a world as a `.mcworld` file normally includes its active packs. Test the import before relying on this.
+
+Before sharing a copy, end any Focus Mode, locks, showcase and timer, then clear the behaviour log and remove markers if they aren't needed.
+
+The copy still treats the original account as the teacher. To take over, another operator can type:
+
+```
+/scriptevent edu_tools:claim_teacher
+```
+
+## Troubleshooting
+
+| Problem | What to try |
+|---|---|
+| The toolbox won't open | Check you opened the world first, or use the command above |
+| No toolbox or Build Marker | Leave and rejoin the world |
+| Icons or the flag are missing | Check the pack is active under Resource Packs |
+| The old version is still running | Remove it from the world, activate the new one, and have students rejoin |
+| A flag lingers after it's moved | It should disappear within a few seconds once someone is near it |
+| Students can't be muted | The add-on tells you if this fails, and Focus Mode still applies |
+| Log times look wrong | Minecraft may be using a different time zone |
+
+Chat can't be recorded, because Minecraft only offers that to add-ons through a beta feature. The Classroom Mode app can show chat live.
+
+## Building from source
+
+You need [Node.js](https://nodejs.org/), Bash and `zip`.
+
+```bash
+cd simple_build
+npm install
+npm run build
+```
+
+This creates `simple_build/Simple_Classroom_Tools.mcaddon`.
+
+- **Code:** `regolith/filters_data/modular_mc/educator_tools/logic`
+- **Pack files, text and icons:** `simple_build/pack`
+
+Use `simple_build`, not the upstream Regolith setup or GitHub release workflows, which haven't been updated for this version. The `docs` folder and other leftover upstream files also still describe the original Educator Tools.
+
+## What changed from Educator Tools
+
+**Removed:** teams, nicknames, assignments, inventory tools, health tools, classroom limitations, world settings, feedback prompts, letter blocks and translations other than English.
+
+**Added:** a single teacher, a student picker with Everybody, time limits for Focus Mode and locks, chat muting, warnings, build markers, Showcase, a behaviour log, an on-screen timer for everyone and a world spawn button.
+
+## Licence
+
+Licensed under the GNU Lesser General Public License v3.0. See [`LICENSE`](LICENSE).
+
+Based on [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS, used under the same licence.
