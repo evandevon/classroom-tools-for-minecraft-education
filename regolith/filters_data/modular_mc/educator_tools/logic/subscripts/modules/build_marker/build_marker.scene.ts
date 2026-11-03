@@ -5,7 +5,6 @@ import { describeSelection, Selection } from "../students/timed-entries.ts";
 import {
 	BuildMarkerService,
 	markerLabel,
-	MarkerSpot,
 } from "./build_marker.service.ts";
 
 export class BuildMarkersScene extends ActionUIScene {
@@ -26,7 +25,7 @@ export class BuildMarkersScene extends ActionUIScene {
 		);
 		for (const { studentId, marker } of markers) {
 			this.addButton(
-				marker.biome ? `${marker.name} - ${marker.biome}` : marker.name,
+				marker.name,
 				() => {
 					sceneManager.openSceneWithContext(
 						context,
@@ -115,46 +114,6 @@ export class BuildMarkerScene extends ActionUIScene {
 			},
 			"textures/edu_tools/ui/_general/back",
 		);
-		this.show(context.getSourcePlayer(), sceneManager);
-	}
-}
-
-const BIOMES = [
-	"Forest",
-	"Plains",
-	"Desert",
-	"Savanna",
-	"Jungle",
-	"Taiga",
-	"Snowy",
-	"Swamp",
-	"Badlands",
-	"Mountains",
-	"Beach",
-	"Ocean",
-];
-
-/** Asked each time a marker is placed. Closing it places nothing. */
-export class BiomeSelectScene extends ActionUIScene {
-	static readonly id = "biome_select";
-
-	constructor(
-		sceneManager: SceneManager,
-		context: SceneContext,
-		service: BuildMarkerService,
-		spot: MarkerSpot,
-	) {
-		super(BiomeSelectScene.id, context.getSourcePlayer());
-		this.setContext(context);
-		this.setSimpleBody("edu_tools.ui.biome_select.body");
-		for (const biome of BIOMES) {
-			this.addButton(biome, () => {
-				service.placeWithBiome(this.player, spot, biome);
-			});
-		}
-		this.addButton("edu_tools.ui.biome_select.none", () => {
-			service.placeWithBiome(this.player, spot);
-		});
 		this.show(context.getSourcePlayer(), sceneManager);
 	}
 }

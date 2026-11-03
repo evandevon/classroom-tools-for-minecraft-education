@@ -60,6 +60,24 @@ export class TeleportService implements Module {
 		return this.moduleManager.getModule<StudentsService>(StudentsService.id)!;
 	}
 
+	setWorldSpawn(player: Player): void {
+		if (!player.dimension.id.endsWith("overworld")) {
+			player.sendMessage("§eThe world spawn point has to be in the Overworld.");
+			return;
+		}
+		const { x, y, z } = player.location;
+		const spot = { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) };
+		try {
+			world.setDefaultSpawnLocation(spot);
+			player.sendMessage(
+				`§aWorld spawn point set to ${spot.x} ${spot.y} ${spot.z}.`,
+			);
+		} catch (e) {
+			console.warn(`Could not set world spawn: ${e}`);
+			player.sendMessage("§cThe world spawn point could not be set here.");
+		}
+	}
+
 	markers(): { studentId: string; marker: BuildMarker }[] {
 		return this.moduleManager.getModule<BuildMarkerService>(
 			BuildMarkerService.id,
@@ -120,6 +138,9 @@ class TeleportMenuScene extends ActionUIScene {
 					);
 				},
 			});
+		});
+		this.addButton("edu_tools.ui.teleport_menu.set_spawn", () => {
+			service.setWorldSpawn(this.player);
 		});
 		this.addButton(
 			"edu_tools.ui.buttons.back",

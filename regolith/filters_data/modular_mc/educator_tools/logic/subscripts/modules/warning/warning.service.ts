@@ -8,6 +8,7 @@ import { StudentsService } from "../students/students.service.ts";
 import { describeSelection, Selection } from "../students/timed-entries.ts";
 
 const EFFECT_SECONDS = 5;
+const DEFAULT_MESSAGE = "Please follow the class rules";
 
 /**
  * A visible reminder before any consequence. Counts reset when the world is
@@ -137,13 +138,14 @@ class WarningSettingsScene extends ModalUIScene {
 	) {
 		super(WarningSettingsScene.id, context.getSourcePlayer());
 		this.setContext(context);
-		let message = "";
+		let message = DEFAULT_MESSAGE;
 		this.addTextField(
-			`Message for ${describeSelection(selection)} (optional)`,
-			"Please follow the class rules",
+			`Message for ${describeSelection(selection)}`,
+			"No message",
 			(value: string) => {
 				message = value.trim();
 			},
+			{ defaultValue: DEFAULT_MESSAGE },
 		);
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (r.canceled) return;

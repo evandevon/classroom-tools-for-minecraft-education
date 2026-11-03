@@ -1,5 +1,4 @@
 import {
-	Dimension,
 	EntityInventoryComponent,
 	ItemLockMode,
 	ItemStack,
@@ -15,28 +14,17 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { Selection } from "../students/timed-entries.ts";
-import {
-	BiomeSelectScene,
-	BuildMarkerScene,
-	BuildMarkersScene,
-} from "./build_marker.scene.ts";
+import { BuildMarkerScene, BuildMarkersScene } from "./build_marker.scene.ts";
 
 export interface BuildMarker {
 	name: string;
 	location: Vector3;
 	dimensionId: string;
 	stamp: string; // Identifies the current marker entity for this student
-	biome?: string;
 }
 
-export interface MarkerSpot {
-	location: Vector3;
-	dimension: Dimension;
-}
-
-/** "Ann's build (Desert)", or "Ann's build" with no biome chosen. */
 export function markerLabel(marker: BuildMarker): string {
-	return `${marker.name}'s build${marker.biome ? ` (${marker.biome})` : ""}`;
+	return `${marker.name}'s build`;
 }
 
 const ITEM_ID = "edu_tools:build_marker";
@@ -77,12 +65,6 @@ export class BuildMarkerService implements Module {
 	}
 
 	registerScenes(sceneManager: SceneManager): void {
-		sceneManager.registerScene(
-			BiomeSelectScene.id,
-			(manager: SceneManager, context: SceneContext, spot: MarkerSpot) => {
-				new BiomeSelectScene(manager, context, this, spot);
-			},
-		);
 		sceneManager.registerScene(
 			BuildMarkersScene.id,
 			(manager: SceneManager, context: SceneContext) => {
@@ -141,17 +123,8 @@ export class BuildMarkerService implements Module {
 			FocusModeService.id,
 		);
 		if (focus?.isFrozen(player.id)) return;
-		// The marker goes where they stood when they used the item.
-		SceneManager.getInstance().createContextAndOpenScene(
-			player,
-			BiomeSelectScene.id,
-			{ location: { ...player.location }, dimension: player.dimension },
-		);
-	}
-
-	placeWithBiome(player: Player, spot: MarkerSpot, biome?: string): void {
 		const moved = !!this.markers[player.id];
-		this.place(player, spot, biome);
+		this.place(player);
 		player.sendMessage(
 			moved
 				? "§aYour marker has moved here."
@@ -160,18 +133,18 @@ export class BuildMarkerService implements Module {
 		player.playSound("random.orb");
 	}
 
-	private place(player: Player, spot: MarkerSpot, biome?: string): void {
+	private place(player: Player): void {
 		const stamp = `${player.id}:${Date.now()}`;
+		const location = { ...player.location };
 		this.markers[player.id] = {
 			name: player.name,
-			location: spot.location,
-			dimensionId: spot.dimension.id,
+			location,
+			dimensionId: player.dimension.id,
 			stamp,
-			biome,
 		};
 		this.save();
 		try {
-			const entity = spot.dimension.spawnEntity(ENTITY_ID, spot.location);
+			const entity = player.dimension.spawnEntity(ENTITY_ID, location);
 			entity.setDynamicProperty(STAMP_PROPERTY, stamp);
 			entity.nameTag = markerLabel(this.markers[player.id]);
 		} catch (e) {
