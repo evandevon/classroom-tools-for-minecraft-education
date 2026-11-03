@@ -1,98 +1,132 @@
-import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { ActionUIScene } from "../scene_manager/ui-scene.ts";
-import { Team } from "../teams/interfaces/team.interface.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
+import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { ActionUIScene, ModalUIScene } from "../scene_manager/ui-scene.ts";
+import {
+	DEFAULT_DURATION_INDEX,
+	describeSelection,
+	DURATIONS,
+	Selection,
+} from "../students/timed-entries.ts";
+import { heldStudents, statusFor } from "../students/held-students.ts";
 import { FocusModeService } from "./focus_mode.service.ts";
-import { TeamsService } from "../teams/teams.service.ts";
-import { ModuleManager } from "../../module-manager.ts";
 
 export class FocusModeScene extends ActionUIScene {
-  public static readonly id = "focus_mode";
-  private focusModeService: FocusModeService;
+	static readonly id = "focus_mode";
 
-  constructor(
-    sceneManager: SceneManager,
-    context: SceneContext,
-    teamsService: TeamsService,
-  ) {
-    // Create the scene
-    super(FocusModeScene.id, context.getSourcePlayer());
-    this.context = context;
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		service: FocusModeService,
+	) {
+		super(FocusModeScene.id, context.getSourcePlayer());
+		this.setContext(context);
+		this.setSimpleBody("edu_tools.ui.focus_mode.body");
 
-    // Get the gamemode service
-    this.focusModeService = ModuleManager.getInstance().getModule<
-      FocusModeService
-    >(
-      FocusModeService.id,
-    )!;
+		this.addButton(
+			"edu_tools.ui.focus_mode.buttons.freeze",
+			() => {
+				const students = service.students.getOnlineStudents();
+				if (students.length === 0) {
+					sceneManager.openSceneWithContext(context, "not_enough_players", true);
+					return;
+				}
+				sceneManager.openSceneWithContext(context, "player_select", true, {
+					everybodyLabel: "§lEverybody§r (also covers students who join later)",
+					players: students.map((s) => ({
+						id: s.id,
+						name: s.name,
+						status: statusFor(service.getEntries().effective(s.id), "Frozen"),
+					})),
+					onSelected: (selection: Selection) => {
+						sceneManager.openSceneWithContext(
+							context,
+							FocusModeSettingsScene.id,
+							true,
+							selection,
+						);
+					},
+				});
+			},
+			"textures/edu_tools/ui/main/focus_mode",
+		);
 
-    this.setRawBody([
-      {
-        translate: "edu_tools.ui.focus_mode.body",
-      },
-    ]);
+		this.addButton(
+			"edu_tools.ui.focus_mode.buttons.release",
+			() => {
+				const held = heldStudents(
+					service.students.getOnlineStudents(),
+					service.getEntries(),
+					"Frozen",
+				);
+				if (held.length === 0) {
+					this.player.sendMessage("§eNobody is frozen.");
+					return;
+				}
+				sceneManager.openSceneWithContext(context, "player_select", true, {
+					everybodyLabel: "§lEverybody§r",
+					players: held,
+					onSelected: (selection: Selection) => {
+						if (selection.everybody) service.releaseAll();
+						else service.release(selection.players.map((p) => p.id));
+						this.player.sendMessage(
+							`§aReleased: ${describeSelection(selection)}`,
+						);
+					},
+				});
+			},
+			"textures/edu_tools/ui/focus_mode/global_disable",
+		);
 
-    this.addDivider();
+		this.addButton(
+			"edu_tools.ui.buttons.back",
+			() => {
+				sceneManager.goBackToScene(context, "main");
+			},
+			"textures/edu_tools/ui/_general/back",
+		);
 
-    this.addButton(
-      "edu_tools.ui.focus_mode.buttons.global_disable",
-      (): void => {
-        this.focusModeService.globalDisableFocusMode();
-        this.player.sendMessage({
-          translate: "edu_tools.message.focus_mode.global_disable",
-        });
-      },
-      "textures/edu_tools/ui/focus_mode/global_disable",
-    );
+		this.show(context.getSourcePlayer(), sceneManager);
+	}
+}
 
-    this.addButton(
-      "edu_tools.ui.focus_mode.buttons.select_team",
-      (): void => {
-        if (
-          teamsService
-            .getAllTeams()
-            .filter((team) => this.teamFilter(team, teamsService)).length < 1
-        ) {
-          // No teams available
-          sceneManager.openSceneWithContext(context, "no_teams", true);
-        } else {
-          context.setSubjectTeamRequired(true);
-          context.setNextScene("focus_mode_manage");
-          context.setData(
-            "team_filter",
-            (team: Team, teamsService: TeamsService): boolean => {
-              return this.teamFilter(team, teamsService);
-            },
-          );
-          sceneManager.openSceneWithContext(context, "team_select", true);
-        }
-      },
-      "textures/edu_tools/ui/focus_mode/select_team",
-    );
+export class FocusModeSettingsScene extends ModalUIScene {
+	static readonly id = "focus_mode_settings";
 
-    this.addButton(
-      "edu_tools.ui.buttons.back",
-      () => {
-        sceneManager.goBackToScene(context, "main");
-      },
-      "textures/edu_tools/ui/_general/back",
-    );
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		service: FocusModeService,
+		selection: Selection,
+	) {
+		super(FocusModeSettingsScene.id, context.getSourcePlayer());
+		this.setContext(context);
 
-    this.show(context.getSourcePlayer(), sceneManager);
-  }
+		let minutes: number | null = DURATIONS[DEFAULT_DURATION_INDEX].minutes;
+		let message = "";
+		this.addDropdown(
+			`How long should ${describeSelection(selection)} stay frozen?`,
+			DURATIONS.map((d) => d.label),
+			(index: number) => {
+				minutes = DURATIONS[index].minutes;
+			},
+			{ defaultValueIndex: DEFAULT_DURATION_INDEX },
+		);
+		this.addTextField(
+			"Message on their screen (optional)",
+			"Please see your teacher",
+			(value: string) => {
+				message = value.trim();
+			},
+		);
 
-  private teamFilter(team: Team, teamsService: TeamsService): boolean {
-    if (team.memberIds.length < 1) {
-      return false; // Skip empty teams
-    }
-    for (const memberId of team.memberIds) {
-      const isTeacher = teamsService
-        .getTeam("system_teachers")
-        ?.memberIds.includes(memberId);
-      if (!isTeacher) {
-        return true; // Include teams with at least one non-teacher player
-      }
-    }
-    return false;
-  }
+		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
+			if (r.canceled) return;
+			service.freeze(selection, minutes, { message });
+			this.player.sendMessage(
+				`§aFrozen: ${describeSelection(selection)} (${
+					minutes === null ? "until you release them" : `${minutes} min`
+				})`,
+			);
+		});
+	}
 }

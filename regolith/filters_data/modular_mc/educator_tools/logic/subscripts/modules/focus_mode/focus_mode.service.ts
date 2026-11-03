@@ -1,195 +1,137 @@
+import { GameMode, Player, world } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
-import {
-  GameMode,
-  HudElement,
-  HudVisibility,
-  InputPermissionCategory,
-  Player,
-  world,
-} from "@minecraft/server";
-import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { Team } from "../teams/interfaces/team.interface.ts";
-import { SceneContext } from "../scene_manager/scene-context.ts";
 import { ButtonConfig } from "../main/main.service.ts";
-import { CachedStorage, PropertyStorage } from "@shapescape/storage";
-import { FocusModeMechanic } from "./focus_mode.mechanic.ts";
-import { TeamsService } from "../teams/teams.service.ts";
 import { PlayerStatusService } from "../player_status/player_status.service.ts";
-import { FocusModeScene } from "./focus_mode.scene.ts";
-import { FocusModeManageScene } from "./focus_mode_manage.scene.ts";
+import { SceneContext } from "../scene_manager/scene-context.ts";
+import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { StudentsService } from "../students/students.service.ts";
+import {
+	formatTimeLeft,
+	Selection,
+	TimedEntries,
+	TimedEntry,
+} from "../students/timed-entries.ts";
+import { FocusModeMechanic } from "./focus_mode.mechanic.ts";
+import { FocusModeScene, FocusModeSettingsScene } from "./focus_mode.scene.ts";
 
-/**
- * Service for managing player gamemodes.
- * This service allows setting gamemodes for players and teams.
- */
+export interface FocusData {
+	message?: string;
+}
+
+/** Freezes individual students, or everybody, for a chosen time. */
 export class FocusModeService implements Module {
-  static readonly id = "focus_mode";
-  public readonly id = FocusModeService.id;
-  private teamsService: TeamsService;
-  private playerStatusService: PlayerStatusService;
-  private readonly focusModeMechanic: FocusModeMechanic;
-  private readonly storage: PropertyStorage;
+	static readonly id = "focus_mode";
+	public readonly id = FocusModeService.id;
+	private readonly entries = new TimedEntries<FocusData>(world, "focus_state");
+	private readonly mechanic = new FocusModeMechanic(this);
+	students!: StudentsService;
+	private playerStatus!: PlayerStatusService;
 
-  constructor(private readonly moduleManager: ModuleManager) {
-    this.storage = new CachedStorage(world, "focus_mode");
-    this.focusModeMechanic = new FocusModeMechanic(this);
-  }
+	constructor(private readonly moduleManager: ModuleManager) {}
 
-  initialize(): void {
-    this.focusModeMechanic.initialize();
-    this.teamsService = this.moduleManager.getModule(
-      TeamsService.id,
-    ) as TeamsService;
-    this.playerStatusService = this.moduleManager.getModule(
-      PlayerStatusService.id,
-    ) as PlayerStatusService;
-  }
+	initialize(): void {
+		this.students = this.moduleManager.getModule<StudentsService>(
+			StudentsService.id,
+		)!;
+		this.playerStatus = this.moduleManager.getModule<PlayerStatusService>(
+			PlayerStatusService.id,
+		)!;
+		this.mechanic.initialize();
+	}
 
-  /**
-   * Registers scenes related to gamemode management.
-   * @param sceneManager - The scene manager
-   */
-  registerScenes(sceneManager: SceneManager): void {
-    sceneManager.registerScene(
-      FocusModeScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new FocusModeScene(manager, context, this.teamsService);
-      },
-    );
-    sceneManager.registerScene(
-      FocusModeManageScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new FocusModeManageScene(manager, context);
-      },
-    );
-  }
+	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			FocusModeScene.id,
+			(manager: SceneManager, context: SceneContext) => {
+				new FocusModeScene(manager, context, this);
+			},
+		);
+		sceneManager.registerScene(
+			FocusModeSettingsScene.id,
+			(
+				manager: SceneManager,
+				context: SceneContext,
+				selection: Selection,
+			) => {
+				new FocusModeSettingsScene(manager, context, this, selection);
+			},
+		);
+	}
 
-  getMainButton(): ButtonConfig {
-    return {
-      labelKey: "edu_tools.ui.main.buttons.focus_mode",
-      iconPath: "textures/edu_tools/ui/main/focus_mode",
-      handler: (sceneManager: SceneManager, context: SceneContext) => {
-        sceneManager.openSceneWithContext(context, "focus_mode", true);
-      },
-      weight: 70,
-    };
-  }
+	getMainButton(): ButtonConfig {
+		return {
+			labelKey: "edu_tools.ui.main.buttons.focus_mode",
+			iconPath: "textures/edu_tools/ui/main/focus_mode",
+			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				sceneManager.openSceneWithContext(context, FocusModeScene.id, true);
+			},
+			weight: 10,
+		};
+	}
 
-  getTeamsInFocusMode(): Team[] {
-    const teamIds = this.storage.get("teams") || [];
-    const teams: Team[] = [];
-    for (const teamId of teamIds) {
-      const team = this.teamsService.getTeam(teamId);
-      if (team) {
-        teams.push(team);
-      }
-    }
-    return teams;
-  }
+	getEntries(): TimedEntries<FocusData> {
+		return this.entries;
+	}
 
-  getTeamFocusMode(team: Team): boolean {
-    const focusMode = this.storage.get(team.id);
-    return !!focusMode;
-  }
+	freeze(selection: Selection, minutes: number | null, data: FocusData): void {
+		this.entries.apply(selection, minutes, data);
+	}
 
-  setTeamFocusMode(team: Team, focusMode: boolean): void {
-    if (focusMode) {
-      this.storage.set(team.id, focusMode);
-      this.storage.rPush("teams", team.id);
-    } else {
-      this.storage.drop(team.id);
-      const teams = this.storage.get("teams") || [];
-      const index = teams.indexOf(team.id);
-      if (index > -1) {
-        teams.splice(index, 1);
-        this.storage.set("teams", teams);
-      }
-    }
-  }
+	release(ids: string[]): void {
+		this.entries.release(ids);
+	}
 
-  setTeamsFocusModeMessage(team: Team, message?: string): void {
-    const key = `focus_mode_message_${team.id}`;
-    if (message && typeof message === "string") {
-      this.storage.set(key, message.trim());
-    } else {
-      this.storage.drop(key);
-    }
-  }
+	releaseAll(): void {
+		this.entries.releaseAll();
+	}
 
-  getTeamsFocusModeMessage(team: Team): string | undefined {
-    const key = `focus_mode_message_${team.id}`;
-    return this.storage.get(key);
-  }
+	isFrozen(playerId: string): boolean {
+		return !this.students.isTeacher(playerId) &&
+			!!this.entries.effective(playerId);
+	}
 
-  getPlayerFocusMode(player: Player): boolean {
-    const playerStorage = new PropertyStorage(player);
-    const focusMode = playerStorage.get("focus_mode");
-    return !!focusMode;
-  }
+	/** Whether this player's freeze has been applied in the game yet. */
+	wasFrozen(player: Player): boolean {
+		return player.getDynamicProperty("focus_mode") === true;
+	}
 
-  setPlayerFocusMode(player: Player, focusMode: boolean): void {
-    const playerStorage = new PropertyStorage(player);
-    playerStorage.set("focus_mode", focusMode);
-  }
+	applyFreeze(player: Player, entry: TimedEntry<FocusData>): void {
+		player.setDynamicProperty("focus_mode", true);
+		this.playerStatus.registerHolder(player, this.id);
+		if (!this.playerStatus.hasGameModeSaved(player)) {
+			this.playerStatus.savePlayerGameMode(player);
+		}
+		player.setGameMode(GameMode.Spectator);
+		this.playerStatus.setAllInputPermissions(player, false);
+		player.onScreenDisplay.hideAllExcept();
+		player.camera.fade({
+			fadeTime: { holdTime: 3, fadeInTime: 0.5, fadeOutTime: 0.5 },
+		});
+		const parts: string[] = [];
+		if (entry.data.message) parts.push(entry.data.message);
+		if (entry.until !== null) parts.push(`${formatTimeLeft(entry.until)} left`);
+		player.onScreenDisplay.setTitle(
+			{ translate: "edu_tools.ui.focus_mode.screen_title" },
+			{
+				stayDuration: 60,
+				fadeInDuration: 0,
+				fadeOutDuration: 10,
+				subtitle: parts.join("\n"),
+			},
+		);
+	}
 
-  canApplyFocusMode(player: Player): boolean {
-    return !this.teamsService
-      .getTeam("system_teachers")
-      ?.memberIds.includes(player.id);
-  }
-
-  applyFocusMode(player: Player): void {
-    this.playerStatusService.registerHolder(player, this.id);
-    if (!this.playerStatusService.hasGameModeSaved(player)) {
-      this.playerStatusService.savePlayerGameMode(player);
-    }
-    player.setGameMode(GameMode.Spectator);
-    if (!this.playerStatusService.hasInputPermissionsSaved(player)) {
-      this.playerStatusService.savePlayerInputPermissions(player);
-    }
-    this.playerStatusService.setAllInputPermissions(player, false);
-    if (!this.playerStatusService.hasHudElementsSaved(player)) {
-      this.playerStatusService.savePlayerHudElements(player);
-    }
-    player.onScreenDisplay.hideAllExcept();
-    player.camera.fade({
-      fadeTime: {
-        holdTime: 3,
-        fadeInTime: 0.5,
-        fadeOutTime: 0.5,
-      },
-    });
-    const team = this.teamsService
-      .getPlayerTeams(player.id)
-      .find((t) => this.getTeamFocusMode(t));
-    if (team) {
-      const message = this.getTeamsFocusModeMessage(team);
-      if (message) {
-        player.onScreenDisplay.updateSubtitle(message);
-      }
-    }
-    player.onScreenDisplay.setTitle(
-      { translate: "edu_tools.ui.focus_mode.screen_title" },
-      {
-        stayDuration: 60,
-        fadeInDuration: 0,
-        fadeOutDuration: 10,
-      },
-    );
-  }
-
-  disableFocusMode(player: Player): void {
-    this.playerStatusService.deleteHolder(player, this.id);
-    if (this.playerStatusService.getHolders(player).length === 0) {
-      this.playerStatusService.restoreAllPlayerState(player);
-    }
-    this.setPlayerFocusMode(player, false);
-  }
-
-  globalDisableFocusMode(): void {
-    const teams = this.getTeamsInFocusMode();
-    for (const team of teams) {
-      this.setTeamFocusMode(team, false);
-    }
-  }
+	removeFreeze(player: Player): void {
+		this.playerStatus.deleteHolder(player, this.id);
+		if (this.playerStatus.getHolders(player).length === 0) {
+			this.playerStatus.restoreAllPlayerState(player);
+		}
+		player.setDynamicProperty("focus_mode", false);
+		player.onScreenDisplay.setTitle("", {
+			stayDuration: 0,
+			fadeInDuration: 0,
+			fadeOutDuration: 0,
+		});
+		player.sendMessage("§aYou can move again.");
+	}
 }

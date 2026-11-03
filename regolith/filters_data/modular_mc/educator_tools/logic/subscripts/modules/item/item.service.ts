@@ -11,7 +11,7 @@ import {
 } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { TeamsService } from "../teams/teams.service.ts";
+import { StudentsService } from "../students/students.service.ts";
 
 export interface SceneSettings {
 	priority: number;
@@ -22,7 +22,7 @@ export class ItemService implements Module {
 	readonly id: string = "item";
 	static readonly id: string = "item";
 	private readonly moduleManager: ModuleManager;
-	private teamsService: TeamsService | undefined;
+	private students: StudentsService | undefined;
 	private readonly registeredScenes: Map<string, SceneSettings> = new Map();
 
 	constructor(moduleManager: ModuleManager) {
@@ -30,8 +30,8 @@ export class ItemService implements Module {
 	}
 
 	initialize(): void {
-		this.teamsService = this.moduleManager.getModule<TeamsService>(
-			TeamsService.id,
+		this.students = this.moduleManager.getModule<StudentsService>(
+			StudentsService.id,
 		)!;
 
 		this.registerEvents();
@@ -112,8 +112,7 @@ export class ItemService implements Module {
 
 	private onPlayerSpawn(event: PlayerSpawnAfterEvent): void {
 		system.runTimeout(() => {
-			const teacherTeam = this.teamsService?.getTeam("system_teachers");
-			if (teacherTeam?.memberIds.includes(event.player.id)) {
+			if (this.students?.isTeacher(event.player.id)) {
 				this.giveEducatorTool(event.player);
 			}
 		}, 1); // Delay to ensure player is processed correctly

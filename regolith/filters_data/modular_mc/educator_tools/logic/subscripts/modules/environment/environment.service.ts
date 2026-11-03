@@ -1,5 +1,6 @@
 import { TimeOfDay, WeatherType, world } from "@minecraft/server";
 import { Module } from "../../module-manager.ts";
+import { ButtonConfig } from "../main/main.service.ts";
 import { EnvironmentScene } from "./environment.scene.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
@@ -39,6 +40,17 @@ export class EnvironmentService implements Module {
 	 * Registers all environment-related scenes with the scene manager.
 	 * @param sceneManager - The scene manager to register scenes with
 	 */
+	getMainButton(): ButtonConfig {
+		return {
+			labelKey: "edu_tools.ui.main.buttons.environment",
+			iconPath: "textures/edu_tools/ui/world_management/environment",
+			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				sceneManager.openSceneWithContext(context, EnvironmentScene.id, true);
+			},
+			weight: 70,
+		};
+	}
+
 	registerScenes(sceneManager: SceneManager): void {
 		sceneManager.registerScene(
 			EnvironmentScene.id,

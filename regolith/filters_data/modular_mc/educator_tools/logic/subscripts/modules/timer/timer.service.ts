@@ -112,7 +112,7 @@ export class TimerService implements Module {
       handler: (sceneManager: SceneManager, context: SceneContext) => {
         sceneManager.openSceneWithContext(context, "timer", true);
       },
-      weight: 100,
+      weight: 40,
     };
   }
 

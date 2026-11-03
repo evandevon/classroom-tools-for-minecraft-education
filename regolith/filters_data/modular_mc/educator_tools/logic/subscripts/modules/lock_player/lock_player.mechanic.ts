@@ -1,295 +1,126 @@
-import { Player, system, Vector2, Vector3, world } from "@minecraft/server";
-import { LockPlayerService, LockSettings } from "./lock_player.service.ts";
-import { ModuleManager } from "../../module-manager.ts";
-import { TeamsService } from "../teams/teams.service.ts";
+import { Player, system, Vector3, world } from "@minecraft/server";
 import { Polyfill, Vec3 } from "@bedrock-oss/bedrock-boost";
+import { formatTimeLeft } from "../students/timed-entries.ts";
+import { LockPlayerService } from "./lock_player.service.ts";
 
-/**
- * Mechanic responsible for enforcing player lock restrictions within specified teams.
- * Handles distance-based player containment with impulse pushing and teleportation mechanics.
- */
+/** Keeps locked students inside their area: a push first, then a teleport. */
 export class LockPlayerMechanic {
-	static readonly id = "lock_player";
-
-	/** System task ID for the main tick loop */
-	private taskId: number | null = null;
-
-	/** Reference to the teams service for team management */
-	private teamsService: TeamsService | undefined;
-
-	/** Maximum impulse force applied to players when pushing them back */
 	private static readonly MAX_IMPULSE = 2;
-
-	/** Distance buffer zone where impulse is applied instead of teleportation */
-	private static readonly IMPULSE_BUFFER_ZONE = 16;
-
-	/** Safety margin from the lock radius when teleporting players back */
-	private static readonly TELEPORT_SAFETY_MARGIN = 5;
-
+	private static readonly IMPULSE_BUFFER_ZONE = 8;
 	private static readonly SPHERE_POINTS_COUNT = 3000;
 	private static readonly SPHERE_POINTS_RADIUS = 3;
 
-	/** Active boundary display jobs per player */
 	private activeBoundaryJobs: Map<string, number> = new Map();
+	private tickCount = 0;
 
-	constructor(
-		private readonly lockPlayerService: LockPlayerService,
-		private readonly moduleManager: ModuleManager,
-	) {
+	constructor(private readonly service: LockPlayerService) {
 		Polyfill.installPlayer();
 	}
 
-	/**
-	 * Initializes the lock player mechanic by starting the main tick loop.
-	 */
 	initialize(): void {
-		this.teamsService = this.moduleManager.getModule(
-			TeamsService.id,
-		) as TeamsService;
-		this.taskId = system.runInterval(() => {
-			this.tick();
-		}, 1);
+		system.runInterval(() => this.tick(), 1);
 	}
 
-	/**
-	 * Main tick function that processes all locked teams and their members.
-	 * Runs every game tick to enforce lock restrictions.
-	 */
 	tick(): void {
-		const lockedTeams = this.lockPlayerService.getLockedTeams();
-
-		// Process each locked team
-		for (const teamId of lockedTeams) {
-			this.processLockedTeam(teamId);
-		}
-	}
-
-	/**
-	 * Processes a single locked team and enforces restrictions on its members.
-	 * @param teamId - The ID of the team to process
-	 */
-	private processLockedTeam(teamId: string): void {
-		const lockSettings = this.lockPlayerService.getLockSettings(teamId);
-		if (!lockSettings) {
-			return;
-		}
-
-		// Update center location if bound to a player
-		this.updatePlayerBoundCenter(teamId, lockSettings);
-
-		const team = this.teamsService?.getTeam(teamId);
-		if (!team) {
-			return;
-		}
-
-		// Process each team member
-		for (const playerId of team.memberIds) {
-			const player = world.getEntity(playerId) as Player;
-			if (!player) {
-				continue; // Skip offline players
+		const everySecond = this.tickCount++ % 20 === 0;
+		if (everySecond) {
+			const ended = this.service.getEntries().sweep();
+			if (ended.everybody) {
+				this.service.students.notifyTeacher("§eLock time is up for everybody.");
 			}
-
-			// Skip teachers - they are exempt from lock restrictions
-			if (this.lockPlayerService.isPlayerExempted(playerId)) {
-				continue;
+			if (ended.names.length) {
+				this.service.students.notifyTeacher(
+					`§eLock time is up: ${ended.names.join(", ")}`,
+				);
 			}
+			this.service.forgetUnusedCentres();
+		}
+		if (this.service.getEntries().isEmpty()) return;
 
-			this.processPlayer(player, lockSettings);
+		for (const player of world.getAllPlayers()) {
+			if (this.service.students.isTeacher(player.id)) continue;
+			// One student's error must never stop the others being handled.
+			try {
+				const entry = this.service.getEntries().effective(player.id);
+				if (!entry) continue;
+				const area = this.service.getArea(player, entry.data);
+				if (!area) continue;
+				if (player.dimension.id !== area.dimensionId) {
+					this.teleportBack(player, area.center, area.dimensionId);
+					continue;
+				}
+				this.keepInside(player, area.center, entry.data.radius, entry.data.showBoundary, area.dimensionId);
+				if (everySecond && entry.until !== null) {
+					player.onScreenDisplay.setActionBar(
+						`§eLocked to this area: ${formatTimeLeft(entry.until)} left`,
+					);
+				}
+			} catch (e) {
+				console.warn(`Lock failed for ${player.name}: ${e}`);
+			}
 		}
 	}
 
-	/**
-	 * Updates the lock center if it's bound to a player's location.
-	 * @param teamId - The team ID
-	 * @param lockSettings - The current lock settings
-	 */
-	private updatePlayerBoundCenter(
-		teamId: string,
-		lockSettings: LockSettings,
-	): void {
-		if (!lockSettings.playerBound) {
-			return;
-		}
-
-		const boundPlayer = world.getEntity(lockSettings.playerBound) as Player;
-		if (boundPlayer) {
-			lockSettings.center = boundPlayer.location;
-			this.lockPlayerService.updateLockSettings(teamId, lockSettings);
-		}
-	}
-
-	/**
-	 * Processes a single player and applies lock restrictions if necessary.
-	 * @param player - The player to process
-	 * @param lockSettings - The lock settings to enforce
-	 */
-	processPlayer(player: Player, lockSettings: LockSettings): void {
-		const playerLocation = player.location;
-		const center = lockSettings.center;
-		if (!center) {
-			throw new Error(
-				`LockPlayerMechanic: No center defined for player ${player.name}`,
-			);
-		}
-		const distance = Vec3.from(playerLocation).distance(center);
-
-		// Calculate dynamic activation radius based on lock radius
-		const dynamicActivationRadius = Math.max(
-			LockPlayerMechanic.SPHERE_POINTS_RADIUS,
-			lockSettings.radius / 5,
-		);
-
-		if (
-			lockSettings.showBoundaries &&
-			lockSettings.radius - distance < dynamicActivationRadius
-		) {
-			this.displayBoundary(player, lockSettings);
-		}
-
-		// Player is within allowed radius - no action needed
-		if (distance <= lockSettings.radius) {
-			return;
-		}
-
-		// Player is outside radius - apply containment mechanics
-		if (
-			distance <
-				lockSettings.radius + LockPlayerMechanic.IMPULSE_BUFFER_ZONE
-		) {
-			// Apply gentle impulse to push player back
-			this.applyContainmentImpulse(player, center, playerLocation);
-		} else {
-			// Player is too far - teleport them back
-			this.teleportPlayerBack(player, lockSettings, center, distance);
-		}
-	}
-
-	/**
-	 * Applies a gentle impulse to push the player back towards the center.
-	 * @param player - The player to apply impulse to
-	 * @param center - The center point of the lock area
-	 * @param playerLocation - The current player location
-	 */
-	private applyContainmentImpulse(
+	private keepInside(
 		player: Player,
 		center: Vector3,
-		playerLocation: Vector3,
+		radius: number,
+		showBoundary: boolean,
+		dimensionId: string,
 	): void {
-		const impulse = {
-			x: (center.x - playerLocation.x) * 0.1,
-			y: 0.2, // Slight upward impulse to help with terrain
-			z: (center.z - playerLocation.z) * 0.1,
-		};
+		const distance = Vec3.from(player.location).distance(center);
+		const activation = Math.max(
+			LockPlayerMechanic.SPHERE_POINTS_RADIUS,
+			radius / 5,
+		);
+		if (showBoundary && radius - distance < activation) {
+			this.displayBoundary(player, { center, radius });
+		}
+		if (distance <= radius) return;
 
-		// Cap the impulse to prevent excessive force
-		impulse.x = Math.max(
-			Math.min(impulse.x, LockPlayerMechanic.MAX_IMPULSE),
-			-LockPlayerMechanic.MAX_IMPULSE,
-		);
-		impulse.y = Math.max(
-			Math.min(impulse.y, LockPlayerMechanic.MAX_IMPULSE),
-			-LockPlayerMechanic.MAX_IMPULSE,
-		);
-		impulse.z = Math.max(
-			Math.min(impulse.z, LockPlayerMechanic.MAX_IMPULSE),
-			-LockPlayerMechanic.MAX_IMPULSE,
-		);
+		if (distance < radius + LockPlayerMechanic.IMPULSE_BUFFER_ZONE) {
+			try {
+				this.push(player, center);
+				return;
+			} catch (e) {
+				console.warn(`Push failed for ${player.name}, teleporting: ${e}`);
+			}
+		}
+		this.teleportBack(player, center, dimensionId);
+	}
 
-		player.applyImpulse(impulse);
+	private push(player: Player, center: Vector3): void {
+		const cap = (v: number) =>
+			Math.max(
+				Math.min(v, LockPlayerMechanic.MAX_IMPULSE),
+				-LockPlayerMechanic.MAX_IMPULSE,
+			);
+		player.applyImpulse({
+			x: cap((center.x - player.location.x) * 0.1),
+			y: 0.2,
+			z: cap((center.z - player.location.z) * 0.1),
+		});
 		player.onScreenDisplay.setActionBar([
 			{ translate: "edu_tools.actionbar.lock_player.too_far_push" },
 		]);
 	}
 
-	/**
-	 * Teleports the player back to either the center or the edge of the allowed area.
-	 * @param player - The player to teleport
-	 * @param lockSettings - The lock settings containing teleport preferences
-	 * @param center - The center point of the lock area
-	 * @param distance - The current distance from center
-	 */
-	private teleportPlayerBack(
+	private teleportBack(
 		player: Player,
-		lockSettings: LockSettings,
 		center: Vector3,
-		distance: number,
+		dimensionId: string,
 	): void {
-		if (lockSettings.teleportToCenter) {
-			// Teleport directly to center
-			player.teleport(center, {
-				rotation: player.getRotation(),
-			});
-
-			if (lockSettings.showLockMessage) {
-				player.sendMessage([
-					{
-						translate:
-							"edu_tools.message.lock_player.too_far_teleport_center",
-					},
-				]);
-			}
-		} else {
-			// Teleport to edge of allowed area
-			this.teleportToAreaEdge(
-				player,
-				center,
-				lockSettings.radius,
-				distance,
-			);
-
-			if (lockSettings.showLockMessage) {
-				player.sendMessage([
-					{
-						translate:
-							"edu_tools.message.lock_player.too_far_teleport_area",
-					},
-				]);
-			}
-		}
-
-		// Play teleportation sound effect
+		player.teleport(center, {
+			dimension: world.getDimension(dimensionId),
+			rotation: player.getRotation(),
+		});
+		player.sendMessage({
+			translate: "edu_tools.message.lock_player.too_far_teleport_center",
+		});
 		player.playSound("mob.endermen.portal");
 	}
 
-	/**
-	 * Teleports the player to the edge of the allowed area.
-	 * @param player - The player to teleport
-	 * @param center - The center point of the lock area
-	 * @param radius - The lock radius
-	 * @param distance - The current distance from center
-	 */
-	private teleportToAreaEdge(
-		player: Player,
-		center: Vector3,
-		radius: number,
-		distance: number,
-	): void {
-		// Calculate direction from center to player
-		const direction: Vector2 = {
-			x: player.location.x - center.x,
-			y: player.location.z - center.z,
-		};
-
-		// Normalize the direction vector
-		const normalizedDirection: Vector2 = {
-			x: direction.x / distance,
-			y: direction.y / distance,
-		};
-
-		// Calculate the closest valid point on the circle edge (with safety margin)
-		const safeRadius = radius - LockPlayerMechanic.TELEPORT_SAFETY_MARGIN;
-		const targetPoint: Vector2 = {
-			x: center.x + normalizedDirection.x * safeRadius,
-			y: center.z + normalizedDirection.y * safeRadius,
-		};
-
-		// Use spreadplayers command for safe teleportation (handles terrain)
-		player.runCommand(
-			`/spreadplayers ${targetPoint.x} ${targetPoint.y} 0 1 @s`,
-		);
-	}
-
-	displayBoundary(player: Player, lockSettings: LockSettings): void {
+	displayBoundary(player: Player, lockSettings: { center: Vector3; radius: number }): void {
 		if (!lockSettings) {
 			return;
 		}
@@ -527,21 +358,5 @@ export class LockPlayerMechanic {
 		}
 
 		return points;
-	}
-
-	/**
-	 * Stops the lock player mechanic by clearing the tick interval.
-	 */
-	stop(): void {
-		if (this.taskId !== null) {
-			system.clearRun(this.taskId);
-			this.taskId = null;
-		}
-
-		// Clear all active boundary jobs
-		for (const [playerId, jobId] of this.activeBoundaryJobs.entries()) {
-			system.clearJob(jobId);
-		}
-		this.activeBoundaryJobs.clear();
 	}
 }

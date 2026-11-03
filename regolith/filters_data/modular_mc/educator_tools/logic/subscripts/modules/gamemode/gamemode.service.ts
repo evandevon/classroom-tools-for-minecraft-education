@@ -1,90 +1,110 @@
-import { Module } from "../../module-manager.ts";
 import { GameMode, Player, world } from "@minecraft/server";
-import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { Team } from "../teams/interfaces/team.interface.ts";
-import { SetGamemodeScene } from "./set-gamemode.scene.ts";
-import { SceneContext } from "../scene_manager/scene-context.ts";
+import { Module, ModuleManager } from "../../module-manager.ts";
+import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
+import { SceneContext } from "../scene_manager/scene-context.ts";
+import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { ActionUIScene } from "../scene_manager/ui-scene.ts";
+import { StudentsService } from "../students/students.service.ts";
+import { describeSelection, Selection } from "../students/timed-entries.ts";
 
-/**
- * Service for managing player gamemodes.
- * This service allows setting gamemodes for players and teams.
- */
 export class GamemodeService implements Module {
-  static readonly id = "gamemode";
-  public readonly id = GamemodeService.id;
+	static readonly id = "gamemode";
+	public readonly id = GamemodeService.id;
 
-  constructor() {}
+	constructor(private readonly moduleManager: ModuleManager) {}
 
-  /**
-   * Registers scenes related to gamemode management.
-   * @param sceneManager - The scene manager
-   */
-  registerScenes(sceneManager: SceneManager): void {
-    sceneManager.registerScene(
-      SetGamemodeScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new SetGamemodeScene(manager, context);
-      },
-    );
-  }
+	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			SetGamemodeScene.id,
+			(manager: SceneManager, context: SceneContext, selection: Selection) => {
+				new SetGamemodeScene(manager, context, this, selection);
+			},
+		);
+	}
 
-  getMainButton(): ButtonConfig {
-    return {
-      labelKey: "edu_tools.ui.main.buttons.gamemode",
-      iconPath: "textures/edu_tools/ui/main/gamemode",
-      handler: (sceneManager: SceneManager, context: SceneContext) => {
-        context.setSubjectTeamRequired(true);
-        context.setNextScene("set_gamemode");
-        context.setData("team_filter", (team: Team): boolean => {
-          if (team.memberIds.length < 1) {
-            return false; // Skip empty teams
-          }
-          for (const memberId of team.memberIds) {
-            const player = world.getEntity(memberId) as Player;
-            if (!!player) return true; // Include teams with at least one online player
-          }
-          return false;
-        });
-        sceneManager.openSceneWithContext(context, "team_select", false);
-      },
-      weight: 50,
-    };
-  }
+	getMainButton(): ButtonConfig {
+		return {
+			labelKey: "edu_tools.ui.main.buttons.gamemode",
+			iconPath: "textures/edu_tools/ui/main/gamemode",
+			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				const students = this.students().getOnlineStudents();
+				if (students.length === 0) {
+					sceneManager.openSceneWithContext(context, "not_enough_players", true);
+					return;
+				}
+				sceneManager.openSceneWithContext(context, "player_select", true, {
+					everybodyLabel: "§lEverybody§r",
+					players: students.map((s) => ({ id: s.id, name: s.name })),
+					onSelected: (selection: Selection) => {
+						sceneManager.openSceneWithContext(
+							context,
+							SetGamemodeScene.id,
+							true,
+							selection,
+						);
+					},
+				});
+			},
+			weight: 60,
+		};
+	}
 
-  /**
-   * Sets gamemode for a specific player.
-   * @param player - The player to set gamemode for
-   * @param gamemode - The gamemode to set (Survival, Creative, Adventure)
-   */
-  setPlayerGamemode(player: Player, gamemode: string): void {
-    player.setGameMode(GameMode[gamemode]);
-  }
+	private students(): StudentsService {
+		return this.moduleManager.getModule<StudentsService>(StudentsService.id)!;
+	}
 
-  /**
-   * Sets gamemode for all players in a team.
-   * @param team - The team to set gamemode for
-   * @param gamemode - The gamemode to set (Survival, Creative, Adventure)
-   * @param exceptPlayer - Optional player to exclude from the change
-   */
-  setTeamGamemode(team: Team, gamemode: string, exceptPlayer?: Player): void {
-    if (!team) return;
-    // Gamemode is needs to have the first letter capitalized
-    gamemode = gamemode.charAt(0).toUpperCase() +
-      gamemode.slice(1).toLowerCase();
+	/** Returns how many of those students are frozen and so stay in Spectator. */
+	setGamemode(selection: Selection, gamemode: GameMode): number {
+		const focus = this.moduleManager.getModule<FocusModeService>(
+			FocusModeService.id,
+		);
+		let frozen = 0;
+		for (const { id } of selection.players) {
+			const player = world.getEntity(id) as Player | undefined;
+			if (!player) continue;
+			if (focus?.isFrozen(id)) frozen++;
+			else player.setGameMode(gamemode);
+		}
+		return frozen;
+	}
+}
 
-    // For each member ID in the team
-    team.memberIds.forEach((playerId) => {
-      // Get the player from the ID
-      const player = world.getEntity(playerId) as Player | undefined;
+class SetGamemodeScene extends ActionUIScene {
+	static readonly id = "set_gamemode";
 
-      // Skip if player is not found or matches the exception player
-      if (!player || (exceptPlayer && player.id === exceptPlayer.id)) {
-        return;
-      }
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		service: GamemodeService,
+		selection: Selection,
+	) {
+		super(SetGamemodeScene.id, context.getSourcePlayer());
+		this.setContext(context);
+		this.setRawBody([{ text: `Choose a game mode for ${describeSelection(selection)}.` }]);
 
-      // Set the gamemode
-      this.setPlayerGamemode(player, gamemode);
-    });
-  }
+		for (const gamemode of Object.values(GameMode)) {
+			const name = String(gamemode).toLowerCase();
+			this.addButton(
+				`edu_tools.ui.set_gamemode.buttons.${name}`,
+				() => {
+					const frozen = service.setGamemode(selection, gamemode);
+					this.player.sendMessage(
+						frozen
+							? `§eGame mode changed. ${frozen} frozen student(s) were skipped: release them first.`
+							: `§aGame mode changed for ${describeSelection(selection)}.`,
+					);
+				},
+				`textures/edu_tools/ui/set_gamemode/${name}`,
+			);
+		}
+		this.addButton(
+			"edu_tools.ui.buttons.back",
+			() => {
+				sceneManager.goBackToScene(context, "main");
+			},
+			"textures/edu_tools/ui/_general/back",
+		);
+		this.show(context.getSourcePlayer(), sceneManager);
+	}
 }

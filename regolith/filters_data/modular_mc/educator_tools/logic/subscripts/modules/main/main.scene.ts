@@ -2,7 +2,6 @@ import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ActionUIScene } from "../scene_manager/ui-scene.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { MainService } from "./main.service.ts";
-import { getAddonVersion } from "../../utils/addon-version.ts";
 
 /**
  * Class representing the Main Scene.
@@ -40,7 +39,7 @@ export class MainScene extends ActionUIScene {
 		}
 
 		this.addDivider();
-		this.addLabel("Made with ❤ by Shapescape - " + getAddonVersion());
+		this.addLabel("Based on Educator Tools by Shapescape");
 
 		// Show the UI to the source player
 		this.show(context.getSourcePlayer(), sceneManager);

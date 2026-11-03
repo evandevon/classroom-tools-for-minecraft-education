@@ -3,7 +3,7 @@ import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { MainScene } from "./main.scene.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { ItemService } from "../item/item.service.ts";
-import { TeamsService } from "../teams/teams.service.ts";
+import { StudentsService } from "../students/students.service.ts";
 
 /**
  * Interface for button configuration
@@ -26,7 +26,7 @@ export class MainService implements Module {
 
   private readonly moduleManager: ModuleManager;
   private itemService: ItemService | undefined;
-  private teamsService: TeamsService | undefined;
+  private students: StudentsService | undefined;
 
   constructor(moduleManager: ModuleManager) {
     this.moduleManager = moduleManager;
@@ -36,17 +36,14 @@ export class MainService implements Module {
     this.itemService = this.moduleManager.getModule<ItemService>(
       ItemService.id,
     );
-    this.teamsService = this.moduleManager.getModule<TeamsService>(
-      TeamsService.id,
+    this.students = this.moduleManager.getModule<StudentsService>(
+      StudentsService.id,
     );
 
     this.itemService?.registerScene("main", {
       priority: -10000,
       condition_callback: (player) => {
-        const teacherTeam = this.teamsService?.getTeam(
-          TeamsService.TEACHERS_TEAM_ID,
-        );
-        if (teacherTeam?.memberIds.includes(player.id)) {
+        if (this.students?.isTeacher(player.id)) {
           return true;
         } else {
           // Send a message to the player that they are not allowed to use the educator tool

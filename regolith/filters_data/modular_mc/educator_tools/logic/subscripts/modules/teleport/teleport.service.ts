@@ -1,107 +1,100 @@
-import { Module } from "../../module-manager.ts";
-import { GameMode, Player, world } from "@minecraft/server";
-import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { Team } from "../teams/interfaces/team.interface.ts";
-import { SceneContext } from "../scene_manager/scene-context.ts";
-import { TeleportScene } from "./teleport.scene.ts";
+import { Player, world } from "@minecraft/server";
+import { Module, ModuleManager } from "../../module-manager.ts";
 import { ButtonConfig } from "../main/main.service.ts";
-import { TeamsService } from "../teams/teams.service.ts";
+import { SceneContext } from "../scene_manager/scene-context.ts";
+import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { ActionUIScene } from "../scene_manager/ui-scene.ts";
+import { StudentsService } from "../students/students.service.ts";
+import { describeSelection, Selection } from "../students/timed-entries.ts";
 
 export class TeleportService implements Module {
-  static readonly id = "teleport";
-  public readonly id = TeleportService.id;
+	static readonly id = "teleport";
+	public readonly id = TeleportService.id;
 
-  constructor() {}
+	constructor(private readonly moduleManager: ModuleManager) {}
 
-  /**
-   * Registers scenes related to gamemode management.
-   * @param sceneManager - The scene manager
-   */
-  registerScenes(sceneManager: SceneManager): void {
-    sceneManager.registerScene(
-      TeleportScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new TeleportScene(manager, context, this);
-      },
-    );
-  }
+	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			TeleportScene.id,
+			(manager: SceneManager, context: SceneContext, selection: Selection) => {
+				new TeleportScene(manager, context, this, selection);
+			},
+		);
+	}
 
-  getMainButton(): ButtonConfig {
-    return {
-      labelKey: "edu_tools.ui.main.buttons.teleport",
-      iconPath: "textures/edu_tools/ui/main/teleport",
-      handler: (sceneManager: SceneManager, context: SceneContext) => {
-        this.startTeleportUI(sceneManager, context);
-      },
-      weight: 10,
-    };
-  }
+	getMainButton(): ButtonConfig {
+		return {
+			labelKey: "edu_tools.ui.main.buttons.teleport",
+			iconPath: "textures/edu_tools/ui/main/teleport",
+			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				const students = this.students().getOnlineStudents();
+				if (students.length === 0) {
+					sceneManager.openSceneWithContext(context, "not_enough_players", true);
+					return;
+				}
+				sceneManager.openSceneWithContext(context, "player_select", true, {
+					everybodyLabel: "§lEverybody§r",
+					players: students.map((s) => ({ id: s.id, name: s.name })),
+					onSelected: (selection: Selection) => {
+						sceneManager.openSceneWithContext(
+							context,
+							TeleportScene.id,
+							true,
+							selection,
+						);
+					},
+				});
+			},
+			weight: 50,
+		};
+	}
 
-  private startTeleportUI(
-    sceneManager: SceneManager,
-    context: SceneContext,
-  ): void {
-    const playerAmount = world.getPlayers().length;
-    if (playerAmount === 1) {
-      // If no players are online, show the no players teleport scene
-      sceneManager.openSceneWithContext(context, "not_enough_players", true);
-    } else {
-      context.setSubjectTeamRequired(true);
-      context.setTargetTeamRequired(true);
-      context.setNextScene("teleport");
-      context.setData("team_filter_subject", (team: Team): boolean => {
-        if (team.memberIds.length < 1) {
-          return false; // Skip empty teams
-        }
-        for (const memberId of team.memberIds) {
-          const player = world.getEntity(memberId) as Player;
-          if (!!player) return true; // Include teams with at least one online player
-        }
-        return true;
-      });
-      context.setData(
-        "team_filter_target",
-        (team: Team, teamsService: TeamsService): boolean => {
-          if (team.memberIds.length < 1) {
-            return false; // Skip empty teams
-          }
-          if (!teamsService.isPlayerTeam(team.id)) {
-            return false; // Skip non-player teams
-          }
-          for (const memberId of team.memberIds) {
-            const player = world.getEntity(memberId) as Player;
-            if (!!player) return true; // Include teams with at least one online player
-          }
-          return false;
-        },
-      );
-      context.setData("body_key", "teleport");
-      sceneManager.openSceneWithContext(context, "team_select", false);
-    }
-  }
+	students(): StudentsService {
+		return this.moduleManager.getModule<StudentsService>(StudentsService.id)!;
+	}
 
-  teleportTeamToPlayer(team: Team, targetPlayer: Player): void {
-    if (!team) return;
+	teleport(selection: Selection, destination: Player): void {
+		for (const { id } of selection.players) {
+			if (id === destination.id) continue;
+			const player = world.getEntity(id) as Player | undefined;
+			player?.teleport(destination.location, {
+				dimension: destination.dimension,
+				rotation: destination.getRotation(),
+			});
+		}
+	}
+}
 
-    // For each member ID in the team
-    team.memberIds.forEach((playerId) => {
-      if (playerId === targetPlayer.id) {
-        // Skip teleporting the target player to themselves
-        return;
-      }
-      // Get the player from the ID
-      const player = world.getEntity(playerId) as Player | undefined;
+class TeleportScene extends ActionUIScene {
+	static readonly id = "teleport";
 
-      // Skip if player is not found
-      if (!player) {
-        return;
-      }
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		service: TeleportService,
+		selection: Selection,
+	) {
+		super(TeleportScene.id, context.getSourcePlayer());
+		this.setContext(context);
+		this.setRawBody([{ text: `Send ${describeSelection(selection)} to:` }]);
 
-      // Teleport the player to the target player
-      player.teleport(targetPlayer.location, {
-        dimension: targetPlayer.dimension,
-        rotation: targetPlayer.getRotation(),
-      });
-    });
-  }
+		const go = (destination: Player) => {
+			service.teleport(selection, destination);
+			this.player.sendMessage(
+				`§aTeleported ${describeSelection(selection)} to ${destination.name}.`,
+			);
+		};
+		this.addButton("Me", () => go(this.player));
+		for (const student of service.students().getOnlineStudents()) {
+			this.addButton(student.name, () => go(student));
+		}
+		this.addButton(
+			"edu_tools.ui.buttons.back",
+			() => {
+				sceneManager.goBackToScene(context, "main");
+			},
+			"textures/edu_tools/ui/_general/back",
+		);
+		this.show(context.getSourcePlayer(), sceneManager);
+	}
 }

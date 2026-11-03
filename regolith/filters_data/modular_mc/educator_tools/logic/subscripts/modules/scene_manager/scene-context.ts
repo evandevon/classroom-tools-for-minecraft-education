@@ -1,18 +1,15 @@
 import { Player } from "@minecraft/server";
-import { Team } from "../teams/interfaces/team.interface.ts";
 
 /**
  * Class representing the context for a scene.
  * This maintains state across scene navigation, including history,
- * subject/target team selections, and arbitrary data.
+ * and arbitrary data.
  */
 export class SceneContext {
 	private sceneHistory: string[] = [];
 	private nextScene: string | null = null;
 	private nextSceneArgs: any[] = [];
 	private sourcePlayer: Player;
-	private subjectTeam: Team | null = null;
-	private targetTeam: Team | null = null;
 	private contextData: Map<string, any> = new Map();
 
 	/**
@@ -100,54 +97,6 @@ export class SceneContext {
 	}
 
 	/**
-	 * Sets the subject team for the current operation.
-	 * @param team - The team to set as subject.
-	 */
-	public setSubjectTeam(team: Team | null): void {
-		this.subjectTeam = team;
-	}
-
-	/**
-	 * Gets the subject team.
-	 * @returns The current subject team or null if not set.
-	 */
-	public getSubjectTeam(): Team | null {
-		return this.subjectTeam;
-	}
-
-	/**
-	 * Sets the target team for the current operation.
-	 * @param team - The team to set as target.
-	 */
-	public setTargetTeam(team: Team | null): void {
-		this.targetTeam = team;
-	}
-
-	/**
-	 * Gets the target team.
-	 * @returns The current target team or null if not set.
-	 */
-	public getTargetTeam(): Team | null {
-		return this.targetTeam;
-	}
-
-	public isSubjectTeamRequired(): boolean {
-		return this.getData("get_subject") === true;
-	}
-
-	public isTargetTeamRequired(): boolean {
-		return this.getData("get_target") === true;
-	}
-
-	public setSubjectTeamRequired(required: boolean): void {
-		this.setData("get_subject", required);
-	}
-
-	public setTargetTeamRequired(required: boolean): void {
-		this.setData("get_target", required);
-	}
-
-	/**
 	 * Stores data in the context.
 	 * @param key - The key to store the data under.
 	 * @param value - The value to store.
@@ -187,8 +136,6 @@ export class SceneContext {
 	public reset(): void {
 		this.clearHistory();
 		this.clearNextScene();
-		this.subjectTeam = null;
-		this.targetTeam = null;
 		this.clearData();
 	}
 }

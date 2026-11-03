@@ -2,7 +2,6 @@ import { Module } from "../../module-manager.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { NotEnoughPlayersScene } from "./not-enough-players.scene.ts";
-import { NoTeamsScene } from "./no-teams.scene.ts";
 
 export class ScenesService implements Module {
 	static readonly id = "scenes";
@@ -19,12 +18,6 @@ export class ScenesService implements Module {
 			NotEnoughPlayersScene.id,
 			(manager: SceneManager, context: SceneContext) => {
 				new NotEnoughPlayersScene(manager, context);
-			},
-		);
-		sceneManager.registerScene(
-			NoTeamsScene.id,
-			(manager: SceneManager, context: SceneContext) => {
-				new NoTeamsScene(manager, context);
 			},
 		);
 	}

@@ -1,202 +1,148 @@
 import { Player, Vector3, world } from "@minecraft/server";
-import { CachedStorage, PropertyStorage } from "@shapescape/storage";
-import { SceneContext } from "../scene_manager/scene-context.ts";
-import { ButtonConfig } from "../main/main.service.ts";
-import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { Team } from "../teams/interfaces/team.interface.ts";
-import { LockPlayerScene } from "./lock_player.scene.ts";
-import { LockPlayerConfirmScene } from "./lock_player_confirm.scene.ts";
-import { LockPlayerEditScene } from "./lock_player_edit.scene.ts";
-import { LockPlayerTeamScene } from "./lock_player_team.scene.ts";
 import { Module, ModuleManager } from "../../module-manager.ts";
+import { ButtonConfig } from "../main/main.service.ts";
+import { SceneContext } from "../scene_manager/scene-context.ts";
+import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { StudentsService } from "../students/students.service.ts";
+import { Selection, TimedEntries } from "../students/timed-entries.ts";
 import { LockPlayerMechanic } from "./lock_player.mechanic.ts";
-import { TeamsService } from "../teams/teams.service.ts";
-import { LockPlayerTeamSettingsScene } from "./lock_player_team_settings.scene.ts";
+import { LockPlayerScene, LockPlayerSettingsScene } from "./lock_player.scene.ts";
 
-export interface LockSettings {
-  radius: number; // The radius around the player that will be locked
-  center: Vector3; // The center point of the lock, can be a Vector3
-  playerBound?: string; // The UUID of the player to lock, if applicable
-  teleportToCenter: boolean; // Whether to teleport the player to the center point
-  showBoundaries: boolean; // Whether to show the boundaries of the locked area
-  showLockMessage: boolean; // Whether to show a message when the player is locked
+export type LockCentre = "point" | "each" | "follow";
+
+export interface LockData {
+	radius: number;
+	centre: LockCentre;
+	showBoundary: boolean;
+	point?: Vector3; // "point": the spot the teacher chose
+	dimensionId?: string;
+	followId?: string; // "follow": the teacher
 }
 
+type SavedCentres = Record<string, { center: Vector3; dimensionId: string }>;
+
+/** Keeps individual students, or everybody, inside an area for a chosen time. */
 export class LockPlayerService implements Module {
-  static readonly id = "lock_player";
-  public readonly id = LockPlayerService.id;
-  private readonly storage: PropertyStorage;
-  private readonly lockStorage: PropertyStorage;
-  private lockPlayerMechanic: LockPlayerMechanic;
-  private teamsService: TeamsService;
+	static readonly id = "lock_player";
+	public readonly id = LockPlayerService.id;
+	private static readonly CENTRES_KEY = "lock_own_centres";
+	private readonly entries = new TimedEntries<LockData>(world, "lock_state");
+	private readonly mechanic = new LockPlayerMechanic(this);
+	private ownCentres: SavedCentres = {};
+	students!: StudentsService;
 
-  constructor(private readonly moduleManager: ModuleManager) {
-    this.storage = new CachedStorage(world, "lock_player");
-    this.lockStorage = this.storage.getSubStorage("locks");
-    this.lockPlayerMechanic = new LockPlayerMechanic(this, this.moduleManager);
-  }
+	constructor(private readonly moduleManager: ModuleManager) {}
 
-  initialize(): void {
-    this.teamsService = this.moduleManager.getModule(
-      TeamsService.id,
-    ) as TeamsService;
-    // Register the mechanic for this module
-    this.lockPlayerMechanic.initialize();
-  }
+	initialize(): void {
+		this.students = this.moduleManager.getModule<StudentsService>(
+			StudentsService.id,
+		)!;
+		const raw = world.getDynamicProperty(LockPlayerService.CENTRES_KEY);
+		if (typeof raw === "string") {
+			try {
+				this.ownCentres = JSON.parse(raw);
+			} catch (e) {
+				console.warn(`Could not read saved lock centres: ${e}`);
+			}
+		}
+		this.mechanic.initialize();
+	}
 
-  /**
-   * Registers scenes related to lock player functionality.
-   * @param sceneManager - The scene manager
-   */
-  registerScenes(sceneManager: SceneManager): void {
-    sceneManager.registerScene(
-      LockPlayerScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new LockPlayerScene(manager, context, this);
-      },
-    );
-    sceneManager.registerScene(
-      LockPlayerEditScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new LockPlayerEditScene(manager, context);
-      },
-    );
-    sceneManager.registerScene(
-      LockPlayerConfirmScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new LockPlayerConfirmScene(manager, context, this);
-      },
-    );
-    sceneManager.registerScene(
-      LockPlayerTeamScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new LockPlayerTeamScene(manager, context, this);
-      },
-    );
-    sceneManager.registerScene(
-      LockPlayerTeamSettingsScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new LockPlayerTeamSettingsScene(manager, context, this);
-      },
-    );
-  }
+	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			LockPlayerScene.id,
+			(manager: SceneManager, context: SceneContext) => {
+				new LockPlayerScene(manager, context, this);
+			},
+		);
+		sceneManager.registerScene(
+			LockPlayerSettingsScene.id,
+			(
+				manager: SceneManager,
+				context: SceneContext,
+				selection: Selection,
+			) => {
+				new LockPlayerSettingsScene(manager, context, this, selection);
+			},
+		);
+	}
 
-  /**
-   * Checks if a player is a teacher (exempt from lock restrictions).
-   * @param playerId - The player ID to check
-   * @returns True if the player is a teacher
-   */
-  isPlayerExempted(playerId: string): boolean {
-    const playerTeams = this.teamsService.getPlayerTeams(playerId);
-    return playerTeams
-      .map((team) => team.id)
-      .includes(TeamsService.TEACHERS_TEAM_ID);
-  }
+	getMainButton(): ButtonConfig {
+		return {
+			labelKey: "edu_tools.ui.main.buttons.lock_player",
+			iconPath: "textures/edu_tools/ui/main/lock_player",
+			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				sceneManager.openSceneWithContext(context, LockPlayerScene.id, true);
+			},
+			weight: 20,
+		};
+	}
 
-  teleportToCenter(teamId: string): void {
-    const settings = this.getLockSettings(teamId);
-    if (!settings) {
-      return;
-    }
+	getEntries(): TimedEntries<LockData> {
+		return this.entries;
+	}
 
-    const team = this.teamsService.getTeam(teamId);
-    if (!team || team.memberIds.length === 0) {
-      return;
-    }
+	lock(selection: Selection, minutes: number | null, data: LockData): void {
+		if (selection.everybody) this.ownCentres = {};
+		else for (const p of selection.players) delete this.ownCentres[p.id];
+		this.saveCentres();
+		this.entries.apply(selection, minutes, data);
+	}
 
-    for (const memberId of team.memberIds) {
-      const player = world.getEntity(memberId) as Player;
-      if (player && !this.isPlayerExempted(player.id)) {
-        player.teleport(settings.center);
-        if (settings.showLockMessage) {
-          player.sendMessage({
-            translate:
-              "edu_tools.message.lock_player_team_settings.teleport_to_center_player",
-          });
-        }
-      }
-    }
-  }
+	release(ids: string[]): void {
+		this.entries.release(ids);
+		this.forgetUnusedCentres();
+	}
 
-  /**     * Returns the main button configuration for the lock player module.
-   * @returns ButtonConfig for the main button
-   */
-  getMainButton(): ButtonConfig {
-    return {
-      labelKey: "edu_tools.ui.main.buttons.lock_player",
-      iconPath: "textures/edu_tools/ui/main/lock_player",
-      handler: (sceneManager: SceneManager, context: SceneContext) => {
-        sceneManager.openSceneWithContext(context, "lock_player", false);
-      },
-      weight: 100,
-    };
-  }
+	releaseAll(): void {
+		this.entries.releaseAll();
+		this.ownCentres = {};
+		this.saveCentres();
+	}
 
-  getLockSettings(teamId: string): LockSettings | undefined {
-    return this.lockStorage.get(teamId) as LockSettings | undefined;
-  }
+	isLocked(playerId: string): boolean {
+		return !this.students.isTeacher(playerId) &&
+			!!this.entries.effective(playerId);
+	}
 
-  setLockSettings(teamId: string, settings: LockSettings): void {
-    this.lockStorage.set(teamId, settings);
-  }
+	/** Where this student's area is right now. */
+	getArea(
+		player: Player,
+		data: LockData,
+	): { center: Vector3; dimensionId: string } | undefined {
+		if (data.centre === "point" && data.point && data.dimensionId) {
+			return { center: data.point, dimensionId: data.dimensionId };
+		}
+		if (data.centre === "follow") {
+			const teacher = this.students.getTeacher();
+			return teacher
+				? { center: teacher.location, dimensionId: teacher.dimension.id }
+				: undefined; // Teacher offline: the area can't follow anyone.
+		}
+		let own = this.ownCentres[player.id];
+		if (!own) {
+			own = { center: player.location, dimensionId: player.dimension.id };
+			this.ownCentres[player.id] = own;
+			this.saveCentres();
+		}
+		return own;
+	}
 
-  clearLockSettings(teamId: string): void {
-    this.lockStorage.drop(teamId);
-  }
+	forgetUnusedCentres(): void {
+		let changed = false;
+		for (const id of Object.keys(this.ownCentres)) {
+			if (this.entries.effective(id)?.data.centre !== "each") {
+				delete this.ownCentres[id];
+				changed = true;
+			}
+		}
+		if (changed) this.saveCentres();
+	}
 
-  clearAllLocks(): void {
-    this.lockStorage.clear();
-  }
-
-  getLockedTeams(): string[] {
-    const allLocks = this.lockStorage.getAll();
-    const keys = allLocks
-      .map((record) => Object.keys(record)[0])
-      .filter((key) => key !== undefined);
-    return keys;
-  }
-
-  updateLockSettings(teamId: string, settings: Partial<LockSettings>): void {
-    const currentSettings = this.getLockSettings(teamId) || {};
-    const updatedSettings = { ...currentSettings, ...settings };
-    this.lockStorage.set(teamId, updatedSettings);
-  }
-
-  confirmAction(context: SceneContext): void {
-    const subjectTeam = context.getSubjectTeam()!;
-    const targetTeam = context.getTargetTeam();
-    const radius = context.getData("radius") || 5;
-    const teleportToCenter = context.getData("teleportToCenter") || false;
-    const showLockMessage = context.getData("showLockMessage") || false;
-    const showBoundaries = context.getData("showBoundaries") || false;
-    const mode: number = context.getData("mode") || 0;
-
-    if (targetTeam) {
-      let center: Vector3;
-      let playerBound: string | undefined = undefined;
-      const targetPlayer = world.getEntity(targetTeam.memberIds[0]) as Player;
-      center = targetPlayer.location;
-      if (mode === 1) {
-        playerBound = targetPlayer.id;
-      }
-      this.setLockSettings(subjectTeam.id, {
-        radius,
-        teleportToCenter,
-        showLockMessage,
-        showBoundaries,
-        center,
-        playerBound,
-      });
-    } else {
-      const sourcePlayer = context.getSourcePlayer();
-      const center = sourcePlayer.location;
-      this.updateLockSettings(subjectTeam.id, {
-        radius,
-        teleportToCenter,
-        showLockMessage,
-        showBoundaries,
-        center,
-      });
-    }
-  }
+	private saveCentres(): void {
+		world.setDynamicProperty(
+			LockPlayerService.CENTRES_KEY,
+			JSON.stringify(this.ownCentres),
+		);
+	}
 }

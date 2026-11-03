@@ -1,26 +1,17 @@
 import { PropertyStorage, CachedStorage } from "@shapescape/storage";
 import { world } from "@minecraft/server";
-import { TeamsService } from "./modules/teams/teams.service.ts";
-import { WorldSettingsService } from "./modules/world_settings/world-settings.service.ts";
 import { SceneManager } from "./modules/scene_manager/scene-manager.ts";
 import { ItemService } from "./modules/item/item.service.ts";
 import { ButtonConfig, MainService } from "./modules/main/main.service.ts";
+import { StudentsService } from "./modules/students/students.service.ts";
 import { GamemodeService } from "./modules/gamemode/gamemode.service.ts";
 import { TeleportService } from "./modules/teleport/teleport.service.ts";
 import { ScenesService } from "./modules/scenes/scenes.service.ts";
-import { ManageHealthService } from "./modules/manage_health/manage_health.service.ts";
 import { PlayerStatusService } from "./modules/player_status/player_status.service.ts";
 import { FocusModeService } from "./modules/focus_mode/focus_mode.service.ts";
-import { InventoryManageService } from "./modules/inventory_manage/inventory-manage.service.ts";
 import { EnvironmentService } from "./modules/environment/environment.service.ts";
 import { LockPlayerService } from "./modules/lock_player/lock_player.service.ts";
 import { TimerService } from "./modules/timer/timer.service.ts";
-import { WorldManagementService } from "./modules/world_management/world_management.service.ts";
-import { AssignmentService } from "./modules/assignment/assignment.service.ts";
-import { AssignmentItemService } from "./modules/assignment-item/assignment-item.service.ts";
-import { ClassroomLimitationsService } from "./modules/classroom_limitations/classroom-limitations.service.ts";
-import { PlayerNicknameService } from "./modules/player_nickname/player_nickname.service.ts";
-import { FeedbackPromptService } from "./modules/feedback_prompt/feedback_prompt.service.ts";
 
 /**
  * Interface that all modules must implement.
@@ -65,59 +56,25 @@ export class ModuleManager {
 	}
 
 	/**
-	 * Initialize default modules like TeamsService.
+	 * Initialize the default modules.
 	 */
 	private loadDefaultModules(): void {
-		// Create TeamsService with a scoped storage
-		const teamsStorage = this.storage.getSubStorage("teams");
-		const teamsService = new TeamsService(teamsStorage, this);
-		const itemService = new ItemService(this);
 		const sceneManager = SceneManager.getInstance(this, this.storage);
 		const mainService = new MainService(this);
-		const gamemodeService = new GamemodeService();
-		const teleportService = new TeleportService();
-		const scenesService = new ScenesService();
-		const inventoryManageService = new InventoryManageService(this);
-		const manageHealthService = new ManageHealthService();
-		const focusModeService = new FocusModeService(this);
-		const playerStatusService = new PlayerStatusService();
-		const environmentService = new EnvironmentService(this.storage);
-		const lockPlayerService = new LockPlayerService(this);
-		const timerService = new TimerService();
-		const worldManagementService = new WorldManagementService();
-		const assignmentService = new AssignmentService(this);
-		const assignmentItemService = new AssignmentItemService(this);
-		const classroomLimitationsService = new ClassroomLimitationsService(this);
-		const playerNicknameService = new PlayerNicknameService(this);
-		const feedbackPromptService = new FeedbackPromptService(this);
-
-		// Create WorldSettingsService
-		const worldSettingsStorage = this.storage.getSubStorage("world_settings");
-		const worldSettingsService = new WorldSettingsService(worldSettingsStorage);
 
 		// Register services
-		this.registerModule(teamsService);
-		this.registerModule(itemService);
-		// Register the SceneManager with the main storage
+		this.registerModule(new StudentsService(this));
+		this.registerModule(new ItemService(this));
 		this.registerModule(sceneManager);
 		this.registerModule(mainService);
-		this.registerModule(worldSettingsService);
-		this.registerModule(gamemodeService);
-		this.registerModule(teleportService);
-		this.registerModule(scenesService);
-		this.registerModule(inventoryManageService);
-		this.registerModule(manageHealthService);
-		this.registerModule(focusModeService);
-		this.registerModule(playerStatusService);
-		this.registerModule(environmentService);
-		this.registerModule(lockPlayerService);
-		this.registerModule(timerService);
-		this.registerModule(worldManagementService);
-		this.registerModule(assignmentService);
-		this.registerModule(assignmentItemService);
-		this.registerModule(classroomLimitationsService);
-		this.registerModule(playerNicknameService);
-		this.registerModule(feedbackPromptService);
+		this.registerModule(new ScenesService());
+		this.registerModule(new PlayerStatusService());
+		this.registerModule(new FocusModeService(this));
+		this.registerModule(new LockPlayerService(this));
+		this.registerModule(new TimerService());
+		this.registerModule(new TeleportService(this));
+		this.registerModule(new GamemodeService(this));
+		this.registerModule(new EnvironmentService(this.storage));
 
 		// Initialize all modules
 		this.initializeModules();
