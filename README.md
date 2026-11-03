@@ -41,7 +41,7 @@ To update, install the new file and check that the world lists the new version. 
 
 ## Using the toolbox
 
-You get an **Educator Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
+You get an **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
 Only the teacher can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes you, and for Warnings, Teleport and Gamemode it covers only students who are online.
 

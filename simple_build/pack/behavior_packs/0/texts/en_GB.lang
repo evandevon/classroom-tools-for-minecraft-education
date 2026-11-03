@@ -1,4 +1,3 @@
-item.edu_tools:educator_tool=Educator Toolbox	##
 edu_tools.ui.buttons.back=Back	##
 edu_tools.ui.buttons.exit=Exit	##
 edu_tools.ui.buttons.continue=Continue	##
@@ -159,5 +158,6 @@ edu_tools.ui.main.buttons.end_showcase=End Showcase
 edu_tools.ui.showcase_builds.title=§fVisit a Build
 edu_tools.ui.showcase_builds.body=Whose build would you like to visit?
 edu_tools.ui.showcase_builds.empty=No builds have been marked yet.
-pack.name=Classroom Tools v1.7.2
 pack.description=Warnings, Focus Mode, area locks, timers and showcases for Minecraft Education. Based on Educator Tools by Shapescape (LGPL-3.0).
+pack.name=Classroom Tools v1.7.3
+item.edu_tools:educator_tool=Classroom Toolbox
