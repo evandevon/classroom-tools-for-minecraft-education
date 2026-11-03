@@ -28,7 +28,7 @@ const ENTITY_ID = "edu_tools:build_marker";
 const STAMP_PROPERTY = "marker_stamp";
 const DIMENSIONS = ["overworld", "nether", "the_end"];
 
-/** Each student can place one marker on their build; the teacher can go there. */
+/** Everyone can place one marker; the teacher can go there or send students. */
 export class BuildMarkerService implements Module {
 	static readonly id = "build_marker";
 	public readonly id = BuildMarkerService.id;
@@ -51,7 +51,6 @@ export class BuildMarkerService implements Module {
 			}
 		}
 		world.afterEvents.playerSpawn.subscribe((event) => {
-			// Wait a tick so the teacher has been worked out first.
 			system.runTimeout(() => this.giveItem(event.player), 1);
 		});
 		world.afterEvents.itemUse.subscribe((event) => {
@@ -100,7 +99,6 @@ export class BuildMarkerService implements Module {
 
 	private giveItem(player: Player): void {
 		try {
-			if (this.students.isTeacher(player.id)) return;
 			const inventory = (player.getComponent(
 				"inventory",
 			) as EntityInventoryComponent).container;
@@ -117,10 +115,6 @@ export class BuildMarkerService implements Module {
 	}
 
 	private onUse(player: Player): void {
-		if (this.students.isTeacher(player.id)) {
-			player.sendMessage("§eBuild Markers are for students to place.");
-			return;
-		}
 		const focus = this.moduleManager.getModule<FocusModeService>(
 			FocusModeService.id,
 		);
