@@ -64,22 +64,39 @@ export class StudentsService implements Module {
 		);
 	}
 
-	getMainButton(): ButtonConfig {
-		return {
-			labelKey: "edu_tools.ui.main.buttons.release_everybody",
-			iconPath: "textures/edu_tools/ui/lock_player/delete_lock",
-			handler: (_: SceneManager, context: SceneContext) => {
-				this.focus()?.releaseAll();
-				this.lock()?.releaseAll();
-				context.getSourcePlayer().sendMessage(
-					"§aEverybody has been released from Focus Mode and locks.",
-				);
-			},
-			weight: 5,
-			visible: () =>
-				!this.focus()?.getEntries().isEmpty() ||
-				!this.lock()?.getEntries().isEmpty(),
-		};
+	getExtraMainButtons(): [string, ButtonConfig][] {
+		return [
+			[
+				"end_focus",
+				{
+					labelKey: "edu_tools.ui.main.buttons.end_focus",
+					iconPath: "textures/edu_tools/ui/focus_mode/global_disable",
+					handler: (_: SceneManager, context: SceneContext) => {
+						this.focus()?.releaseAll();
+						context.getSourcePlayer().sendMessage(
+							"§aFocus Mode has ended for everybody.",
+						);
+					},
+					weight: 1,
+					visible: () => !this.focus()?.getEntries().isEmpty(),
+				},
+			],
+			[
+				"unlock_everybody",
+				{
+					labelKey: "edu_tools.ui.main.buttons.unlock_everybody",
+					iconPath: "textures/edu_tools/ui/lock_player/delete_lock",
+					handler: (_: SceneManager, context: SceneContext) => {
+						this.lock()?.releaseAll();
+						context.getSourcePlayer().sendMessage(
+							"§aEverybody has been unlocked.",
+						);
+					},
+					weight: 2,
+					visible: () => !this.lock()?.getEntries().isEmpty(),
+				},
+			],
+		];
 	}
 
 	getTeacherId(): string | undefined {
