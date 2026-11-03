@@ -1,3 +1,4 @@
+import { BehaviourLogService } from "../behaviour_log/behaviour_log.service.ts";
 import { GameMode, Player, world } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { ButtonConfig } from "../main/main.service.ts";
@@ -6,6 +7,7 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { StudentsService } from "../students/students.service.ts";
 import {
+	describeMinutes,
 	formatTimeLeft,
 	Selection,
 	TimedEntries,
@@ -116,13 +118,31 @@ export class FocusModeService implements Module {
 
 	freeze(selection: Selection, minutes: number | null, data: FocusData): void {
 		this.entries.apply(selection, minutes, data);
+		const length = describeMinutes(minutes);
+		const note = [length, data.mute ? "chat off" : "", data.message ?? ""]
+			.filter(Boolean).join(", ");
+		if (selection.everybody) this.log("Everybody", "Focus Mode", note);
+		else for (const p of selection.players) this.log(p.name, "Focus Mode", note);
 	}
 
-	release(ids: string[]): void {
+	private log(who: string, what: string, note?: string): void {
+		this.moduleManager.getModule<BehaviourLogService>(BehaviourLogService.id)
+			?.add(who, what, note);
+	}
+
+	release(ids: string[], names: string[] = []): void {
 		this.entries.release(ids);
+		for (const name of names) this.log(name, "Released from Focus Mode");
+	}
+
+	/** Records freezes that ended because their time ran out. */
+	logEnded(names: string[], everybody: boolean): void {
+		for (const name of names) this.log(name, "Focus Mode time ended");
+		if (everybody) this.log("Everybody", "Focus Mode time ended");
 	}
 
 	releaseAll(): void {
+		if (!this.entries.isEmpty()) this.log("Everybody", "Released from Focus Mode");
 		this.entries.releaseAll();
 	}
 

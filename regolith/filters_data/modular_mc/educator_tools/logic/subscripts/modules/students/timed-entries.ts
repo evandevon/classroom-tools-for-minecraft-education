@@ -164,3 +164,8 @@ export function loadChoices<T>(
 export function saveChoices<T>(store: PropertyStore, key: string, choices: T): void {
 	store.setDynamicProperty(key, JSON.stringify(choices));
 }
+
+/** Plain-English length for the behaviour log and messages. */
+export function describeMinutes(minutes: number | null): string {
+	return minutes === null ? "no time limit" : `${minutes} min`;
+}

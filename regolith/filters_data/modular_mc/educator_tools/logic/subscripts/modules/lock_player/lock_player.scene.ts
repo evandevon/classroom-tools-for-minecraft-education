@@ -78,7 +78,12 @@ export class LockPlayerScene extends ActionUIScene {
 					players: held,
 					onSelected: (selection: Selection) => {
 						if (selection.everybody) service.releaseAll();
-						else service.release(selection.players.map((p) => p.id));
+						else {
+							service.release(
+								selection.players.map((p) => p.id),
+								selection.players.map((p) => p.name),
+							);
+						}
 						this.player.sendMessage(
 							`§aUnlocked: ${describeSelection(selection)}`,
 						);

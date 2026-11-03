@@ -24,6 +24,7 @@ export class LockPlayerMechanic {
 		const everySecond = this.tickCount++ % 20 === 0;
 		if (everySecond) {
 			const ended = this.service.getEntries().sweep();
+			this.service.logEnded(ended.names, ended.everybody);
 			if (ended.everybody) {
 				this.service.students.notifyTeacher("§eLock time is up for everybody.");
 			}

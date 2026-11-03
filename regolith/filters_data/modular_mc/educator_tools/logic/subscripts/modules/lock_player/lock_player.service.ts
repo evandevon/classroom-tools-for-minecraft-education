@@ -1,10 +1,15 @@
+import { BehaviourLogService } from "../behaviour_log/behaviour_log.service.ts";
 import { Player, Vector3, world } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { StudentsService } from "../students/students.service.ts";
-import { Selection, TimedEntries } from "../students/timed-entries.ts";
+import {
+	describeMinutes,
+	Selection,
+	TimedEntries,
+} from "../students/timed-entries.ts";
 import { LockPlayerMechanic } from "./lock_player.mechanic.ts";
 import {
 	LockPlayerScene,
@@ -95,14 +100,30 @@ export class LockPlayerService implements Module {
 		else for (const p of selection.players) delete this.ownCentres[p.id];
 		this.saveCentres();
 		this.entries.apply(selection, minutes, data);
+		const note = `${describeMinutes(minutes)}, ${data.radius} blocks`;
+		if (selection.everybody) this.log("Everybody", "Locked", note);
+		else for (const p of selection.players) this.log(p.name, "Locked", note);
 	}
 
-	release(ids: string[]): void {
+	private log(who: string, what: string, note?: string): void {
+		this.moduleManager.getModule<BehaviourLogService>(BehaviourLogService.id)
+			?.add(who, what, note);
+	}
+
+	release(ids: string[], names: string[] = []): void {
 		this.entries.release(ids);
 		this.forgetUnusedCentres();
+		for (const name of names) this.log(name, "Unlocked");
+	}
+
+	/** Records locks that ended because their time ran out. */
+	logEnded(names: string[], everybody: boolean): void {
+		for (const name of names) this.log(name, "Lock time ended");
+		if (everybody) this.log("Everybody", "Lock time ended");
 	}
 
 	releaseAll(): void {
+		if (!this.entries.isEmpty()) this.log("Everybody", "Unlocked");
 		this.entries.releaseAll();
 		this.ownCentres = {};
 		this.saveCentres();

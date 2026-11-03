@@ -6,6 +6,7 @@ import { ButtonConfig, MainService } from "./modules/main/main.service.ts";
 import { StudentsService } from "./modules/students/students.service.ts";
 import { BuildMarkerService } from "./modules/build_marker/build_marker.service.ts";
 import { WarningService } from "./modules/warning/warning.service.ts";
+import { BehaviourLogService } from "./modules/behaviour_log/behaviour_log.service.ts";
 import { GamemodeService } from "./modules/gamemode/gamemode.service.ts";
 import { TeleportService } from "./modules/teleport/teleport.service.ts";
 import { ScenesService } from "./modules/scenes/scenes.service.ts";
@@ -72,6 +73,7 @@ export class ModuleManager {
 		this.registerModule(mainService);
 		this.registerModule(new ScenesService());
 		this.registerModule(new PlayerStatusService());
+		this.registerModule(new BehaviourLogService());
 		this.registerModule(new WarningService(this));
 		this.registerModule(new FocusModeService(this));
 		this.registerModule(new LockPlayerService(this));

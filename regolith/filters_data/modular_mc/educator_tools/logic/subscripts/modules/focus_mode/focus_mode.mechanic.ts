@@ -13,6 +13,7 @@ export class FocusModeMechanic {
 
 	tick(): void {
 		const ended = this.service.getEntries().sweep();
+		this.service.logEnded(ended.names, ended.everybody);
 		if (ended.everybody) {
 			this.service.students.notifyTeacher("§eFocus Mode time is up for everybody.");
 		}

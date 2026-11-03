@@ -1,3 +1,4 @@
+import { BehaviourLogService } from "../behaviour_log/behaviour_log.service.ts";
 import { Player, system, world } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { ButtonConfig } from "../main/main.service.ts";
@@ -84,6 +85,8 @@ export class WarningService implements Module {
 			const count = (this.counts.get(id) ?? 0) + 1;
 			this.counts.set(id, count);
 			summary.push(`${name} (${count})`);
+			this.moduleManager.getModule<BehaviourLogService>(BehaviourLogService.id)
+				?.add(name, `Warning ${count}`, message);
 			try {
 				this.effects.set(id, Date.now() + EFFECT_SECONDS * 1000);
 				player.camera.fade({
