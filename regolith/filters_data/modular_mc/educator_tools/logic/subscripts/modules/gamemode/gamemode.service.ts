@@ -5,6 +5,7 @@ import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ActionUIScene } from "../scene_manager/ui-scene.ts";
+import { ShowcaseService } from "../showcase/showcase.service.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { describeSelection, Selection } from "../students/timed-entries.ts";
 
@@ -28,6 +29,15 @@ export class GamemodeService implements Module {
 			labelKey: "edu_tools.ui.main.buttons.gamemode",
 			iconPath: "textures/edu_tools/ui/main/gamemode",
 			handler: (sceneManager: SceneManager, context: SceneContext) => {
+				if (
+					this.moduleManager.getModule<ShowcaseService>(ShowcaseService.id)
+						?.isActive()
+				) {
+					context.getSourcePlayer().sendMessage(
+						"§eEnd the showcase before changing game modes.",
+					);
+					return;
+				}
 				const students = this.students().getOnlineStudents();
 				if (students.length === 0) {
 					sceneManager.openSceneWithContext(context, "not_enough_players", true);

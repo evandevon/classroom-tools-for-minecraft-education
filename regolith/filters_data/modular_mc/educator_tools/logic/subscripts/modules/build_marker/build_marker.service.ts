@@ -12,6 +12,7 @@ import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
+import { ShowcaseService } from "../showcase/showcase.service.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { Selection } from "../students/timed-entries.ts";
 import { BuildMarkerScene, BuildMarkersScene } from "./build_marker.scene.ts";
@@ -123,6 +124,16 @@ export class BuildMarkerService implements Module {
 			FocusModeService.id,
 		);
 		if (focus?.isFrozen(player.id)) return;
+		const showcase = this.moduleManager.getModule<ShowcaseService>(
+			ShowcaseService.id,
+		);
+		if (showcase?.isActive() && !this.students.isTeacher(player.id)) {
+			SceneManager.getInstance().createContextAndOpenScene(
+				player,
+				"showcase_builds",
+			);
+			return;
+		}
 		const moved = !!this.markers[player.id];
 		this.place(player);
 		player.sendMessage(
