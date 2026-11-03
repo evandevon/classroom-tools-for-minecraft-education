@@ -127,7 +127,7 @@ export class BuildMarkerService implements Module {
 		const showcase = this.moduleManager.getModule<ShowcaseService>(
 			ShowcaseService.id,
 		);
-		if (showcase?.isActive() && !this.students.isTeacher(player.id)) {
+		if (showcase?.isActive()) {
 			SceneManager.getInstance().createContextAndOpenScene(
 				player,
 				"showcase_builds",
