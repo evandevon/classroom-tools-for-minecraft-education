@@ -19,10 +19,7 @@ export function openLockPicker(
 	service: LockPlayerService,
 ): void {
 	const students = service.students.getOnlineStudents();
-	if (students.length === 0) {
-		sceneManager.openSceneWithContext(context, "not_enough_players", true);
-		return;
-	}
+	// With nobody online yet, Everybody can still be set for students who join.
 	sceneManager.openSceneWithContext(context, "player_select", true, {
 		everybodyLabel: "§lEverybody§r (also covers students who join later)",
 		players: students.map((s) => ({

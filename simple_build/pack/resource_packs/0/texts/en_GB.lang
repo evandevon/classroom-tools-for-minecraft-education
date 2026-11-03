@@ -159,5 +159,5 @@ edu_tools.ui.showcase_builds.title=§fVisit a Build
 edu_tools.ui.showcase_builds.body=Whose build would you like to visit?
 edu_tools.ui.showcase_builds.empty=No builds have been marked yet.
 pack.description=Warnings, Focus Mode, area locks, timers and showcases for Minecraft Education. Based on Educator Tools by Shapescape (LGPL-3.0).
-pack.name=Classroom Tools v1.7.3
 item.edu_tools:educator_tool=Classroom Toolbox
+pack.name=Classroom Tools v1.7.4
