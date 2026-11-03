@@ -28,7 +28,8 @@ export class MainScene extends ActionUIScene {
 
 		// Add buttons from the service registry
 		const registeredButtons = mainService.getRegisteredButtons();
-		for (const [buttonId, config] of registeredButtons) {
+		for (const [, config] of registeredButtons) {
+			if (config.more || (config.visible && !config.visible())) continue;
 			this.addButton(
 				config.labelKey,
 				(): void => {
@@ -42,6 +43,36 @@ export class MainScene extends ActionUIScene {
 		this.addLabel("Based on Educator Tools by Shapescape");
 
 		// Show the UI to the source player
+		this.show(context.getSourcePlayer(), sceneManager);
+	}
+}
+
+export class MoreScene extends ActionUIScene {
+	static readonly id = "more";
+
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		mainService: MainService,
+	) {
+		super(MoreScene.id, context.getSourcePlayer());
+		this.setContext(context);
+		this.setSimpleBody("edu_tools.ui.more.body");
+		for (const [, config] of mainService.getRegisteredButtons()) {
+			if (!config.more) continue;
+			this.addButton(
+				config.labelKey,
+				() => config.handler(sceneManager, context),
+				config.iconPath,
+			);
+		}
+		this.addButton(
+			"edu_tools.ui.buttons.back",
+			() => {
+				sceneManager.goBackToScene(context, "main");
+			},
+			"textures/edu_tools/ui/_general/back",
+		);
 		this.show(context.getSourcePlayer(), sceneManager);
 	}
 }

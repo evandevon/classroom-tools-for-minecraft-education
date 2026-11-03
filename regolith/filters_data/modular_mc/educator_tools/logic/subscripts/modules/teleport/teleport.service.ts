@@ -1,5 +1,9 @@
 import { Player, Vector3, world } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
+import {
+	BuildMarker,
+	BuildMarkerService,
+} from "../build_marker/build_marker.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
@@ -55,6 +59,12 @@ export class TeleportService implements Module {
 		return this.moduleManager.getModule<StudentsService>(StudentsService.id)!;
 	}
 
+	markers(): { studentId: string; marker: BuildMarker }[] {
+		return this.moduleManager.getModule<BuildMarkerService>(
+			BuildMarkerService.id,
+		)?.getMarkers() ?? [];
+	}
+
 	teleport(selection: Selection, destination: Player): void {
 		for (const { id } of selection.players) {
 			if (id === destination.id) continue;
@@ -88,22 +98,8 @@ class TeleportMenuScene extends ActionUIScene {
 		this.setContext(context);
 		this.setSimpleBody("edu_tools.ui.teleport_menu.body");
 
-		this.addButton("edu_tools.ui.teleport_menu.self_student", () => {
-			if (service.students().getOnlineStudents().length === 0) {
-				sceneManager.openSceneWithContext(context, "not_enough_players", true);
-				return;
-			}
+		this.addButton("edu_tools.ui.teleport_menu.self", () => {
 			sceneManager.openSceneWithContext(context, TeleportSelfScene.id, true);
-		});
-		this.addButton("edu_tools.ui.teleport_menu.self_marker", () => {
-			sceneManager.openSceneWithContext(context, "build_markers", true);
-		});
-		this.addButton("edu_tools.ui.teleport_menu.self_coordinates", () => {
-			sceneManager.openSceneWithContext(
-				context,
-				TeleportCoordinatesScene.id,
-				true,
-			);
 		});
 		this.addButton("edu_tools.ui.teleport_menu.send", () => {
 			const students = service.students().getOnlineStudents();
@@ -153,6 +149,24 @@ class TeleportSelfScene extends ActionUIScene {
 				});
 			});
 		}
+		for (const { marker } of service.markers()) {
+			this.addButton(
+				`${marker.name}'s marker`,
+				() => {
+					this.player.teleport(marker.location, {
+						dimension: world.getDimension(marker.dimensionId),
+					});
+				},
+				"textures/edu_tools/ui/main/build_markers",
+			);
+		}
+		this.addButton("edu_tools.ui.teleport_self.coordinates", () => {
+			sceneManager.openSceneWithContext(
+				context,
+				TeleportCoordinatesScene.id,
+				true,
+			);
+		});
 		this.addButton(
 			"edu_tools.ui.buttons.back",
 			() => {
@@ -214,6 +228,23 @@ class TeleportScene extends ActionUIScene {
 		this.addButton("Me", () => go(this.player));
 		for (const student of service.students().getOnlineStudents()) {
 			this.addButton(student.name, () => go(student));
+		}
+		for (const { marker } of service.markers()) {
+			this.addButton(
+				`${marker.name}'s marker`,
+				() => {
+					for (const { id } of selection.players) {
+						(world.getEntity(id) as Player | undefined)?.teleport(
+							marker.location,
+							{ dimension: world.getDimension(marker.dimensionId) },
+						);
+					}
+					this.player.sendMessage(
+						`§aTeleported ${describeSelection(selection)} to ${marker.name}'s marker.`,
+					);
+				},
+				"textures/edu_tools/ui/main/build_markers",
+			);
 		}
 		this.addButton(
 			"edu_tools.ui.buttons.back",

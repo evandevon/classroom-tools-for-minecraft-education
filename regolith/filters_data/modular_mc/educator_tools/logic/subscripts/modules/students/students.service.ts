@@ -75,7 +75,10 @@ export class StudentsService implements Module {
 					"§aAll freezes and locks have been removed.",
 				);
 			},
-			weight: 30,
+			weight: 5,
+			visible: () =>
+				!this.focus()?.getEntries().isEmpty() ||
+				!this.lock()?.getEntries().isEmpty(),
 		};
 	}
 

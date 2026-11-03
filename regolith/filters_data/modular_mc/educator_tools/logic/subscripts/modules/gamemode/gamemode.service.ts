@@ -47,6 +47,7 @@ export class GamemodeService implements Module {
 				});
 			},
 			weight: 60,
+			more: true,
 		};
 	}
 

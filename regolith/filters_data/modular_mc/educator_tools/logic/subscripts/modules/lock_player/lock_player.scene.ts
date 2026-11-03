@@ -1,3 +1,4 @@
+import { world } from "@minecraft/server";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ActionUIScene, ModalUIScene } from "../scene_manager/ui-scene.ts";
@@ -6,9 +7,39 @@ import {
 	DEFAULT_DURATION_INDEX,
 	describeSelection,
 	DURATIONS,
+	loadChoices,
+	saveChoices,
 	Selection,
 } from "../students/timed-entries.ts";
 import { LockCentre, LockPlayerService } from "./lock_player.service.ts";
+
+export function openLockPicker(
+	sceneManager: SceneManager,
+	context: SceneContext,
+	service: LockPlayerService,
+): void {
+	const students = service.students.getOnlineStudents();
+	if (students.length === 0) {
+		sceneManager.openSceneWithContext(context, "not_enough_players", true);
+		return;
+	}
+	sceneManager.openSceneWithContext(context, "player_select", true, {
+		everybodyLabel: "§lEverybody§r (also covers students who join later)",
+		players: students.map((s) => ({
+			id: s.id,
+			name: s.name,
+			status: statusFor(service.getEntries().effective(s.id), "Locked"),
+		})),
+		onSelected: (selection: Selection) => {
+			sceneManager.openSceneWithContext(
+				context,
+				LockPlayerSettingsScene.id,
+				true,
+				selection,
+			);
+		},
+	});
+}
 
 export class LockPlayerScene extends ActionUIScene {
 	static readonly id = "lock_player";
@@ -25,27 +56,7 @@ export class LockPlayerScene extends ActionUIScene {
 		this.addButton(
 			"edu_tools.ui.lock_player.buttons.lock",
 			() => {
-				const students = service.students.getOnlineStudents();
-				if (students.length === 0) {
-					sceneManager.openSceneWithContext(context, "not_enough_players", true);
-					return;
-				}
-				sceneManager.openSceneWithContext(context, "player_select", true, {
-					everybodyLabel: "§lEverybody§r (also covers students who join later)",
-					players: students.map((s) => ({
-						id: s.id,
-						name: s.name,
-						status: statusFor(service.getEntries().effective(s.id), "Locked"),
-					})),
-					onSelected: (selection: Selection) => {
-						sceneManager.openSceneWithContext(
-							context,
-							LockPlayerSettingsScene.id,
-							true,
-							selection,
-						);
-					},
-				});
+				openLockPicker(sceneManager, context, service);
 			},
 			"textures/edu_tools/ui/main/lock_player",
 		);
@@ -107,47 +118,54 @@ export class LockPlayerSettingsScene extends ModalUIScene {
 		super(LockPlayerSettingsScene.id, context.getSourcePlayer());
 		this.setContext(context);
 
-		let radius = 16;
-		let centre: LockCentre = CENTRES[0].value;
-		let minutes: number | null = DURATIONS[DEFAULT_DURATION_INDEX].minutes;
-		let showBoundary = true;
+		const saved = loadChoices(world, "lock_choices", {
+			duration: DEFAULT_DURATION_INDEX,
+			centre: 0,
+			radius: 16,
+			showBoundary: true,
+		});
+		const choices = { ...saved };
 
 		this.addDropdown(
 			`How long should ${describeSelection(selection)} stay locked?`,
 			DURATIONS.map((d) => d.label),
 			(index: number) => {
-				minutes = DURATIONS[index].minutes;
+				choices.duration = index;
 			},
-			{ defaultValueIndex: DEFAULT_DURATION_INDEX },
+			{ defaultValueIndex: saved.duration },
 		);
 		this.addDropdown(
 			"Where is the area?",
 			CENTRES.map((c) => c.label),
 			(index: number) => {
-				centre = CENTRES[index].value;
+				choices.centre = index;
 			},
-			{ defaultValueIndex: 0 },
+			{ defaultValueIndex: saved.centre },
 		);
 		this.addSlider(
 			"How far can they move? (blocks)",
 			5,
 			150,
 			(value: number) => {
-				radius = value;
+				choices.radius = value;
 			},
-			{ defaultValue: radius, valueStep: 1 },
+			{ defaultValue: saved.radius, valueStep: 1 },
 		);
 		this.addToggle(
 			"Show the edge of the area",
 			(value: boolean) => {
-				showBoundary = value;
+				choices.showBoundary = value;
 			},
-			{ defaultValue: true },
+			{ defaultValue: saved.showBoundary },
 		);
 
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (r.canceled) return;
+			saveChoices(world, "lock_choices", choices);
 			const teacher = this.player;
+			const minutes = DURATIONS[choices.duration].minutes;
+			const centre = CENTRES[choices.centre].value;
+			const { radius, showBoundary } = choices;
 			service.lock(selection, minutes, {
 				radius,
 				centre,

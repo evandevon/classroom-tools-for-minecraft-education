@@ -145,3 +145,22 @@ export function describeSelection(selection: Selection): string {
 		? "everybody"
 		: selection.players.map((p) => p.name).join(", ");
 }
+
+/** Remembers the teacher's last choices on a settings screen. */
+export function loadChoices<T>(
+	store: PropertyStore,
+	key: string,
+	defaults: T,
+): T {
+	const raw = store.getDynamicProperty(key);
+	if (typeof raw !== "string") return defaults;
+	try {
+		return { ...defaults, ...JSON.parse(raw) };
+	} catch {
+		return defaults;
+	}
+}
+
+export function saveChoices<T>(store: PropertyStore, key: string, choices: T): void {
+	store.setDynamicProperty(key, JSON.stringify(choices));
+}

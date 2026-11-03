@@ -12,7 +12,11 @@ import {
 	TimedEntry,
 } from "../students/timed-entries.ts";
 import { FocusModeMechanic } from "./focus_mode.mechanic.ts";
-import { FocusModeScene, FocusModeSettingsScene } from "./focus_mode.scene.ts";
+import {
+	FocusModeScene,
+	FocusModeSettingsScene,
+	openFreezePicker,
+} from "./focus_mode.scene.ts";
 
 export interface FocusData {
 	message?: string;
@@ -63,7 +67,11 @@ export class FocusModeService implements Module {
 			labelKey: "edu_tools.ui.main.buttons.focus_mode",
 			iconPath: "textures/edu_tools/ui/main/focus_mode",
 			handler: (sceneManager: SceneManager, context: SceneContext) => {
-				sceneManager.openSceneWithContext(context, FocusModeScene.id, true);
+				if (this.entries.isEmpty()) {
+					openFreezePicker(sceneManager, context, this);
+				} else {
+					sceneManager.openSceneWithContext(context, FocusModeScene.id, true);
+				}
 			},
 			weight: 10,
 		};

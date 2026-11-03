@@ -1,3 +1,4 @@
+import { world } from "@minecraft/server";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ActionUIScene, ModalUIScene } from "../scene_manager/ui-scene.ts";
@@ -5,10 +6,40 @@ import {
 	DEFAULT_DURATION_INDEX,
 	describeSelection,
 	DURATIONS,
+	loadChoices,
+	saveChoices,
 	Selection,
 } from "../students/timed-entries.ts";
 import { heldStudents, statusFor } from "../students/held-students.ts";
 import { FocusModeService } from "./focus_mode.service.ts";
+
+export function openFreezePicker(
+	sceneManager: SceneManager,
+	context: SceneContext,
+	service: FocusModeService,
+): void {
+	const students = service.students.getOnlineStudents();
+	if (students.length === 0) {
+		sceneManager.openSceneWithContext(context, "not_enough_players", true);
+		return;
+	}
+	sceneManager.openSceneWithContext(context, "player_select", true, {
+		everybodyLabel: "§lEverybody§r (also covers students who join later)",
+		players: students.map((s) => ({
+			id: s.id,
+			name: s.name,
+			status: statusFor(service.getEntries().effective(s.id), "Frozen"),
+		})),
+		onSelected: (selection: Selection) => {
+			sceneManager.openSceneWithContext(
+				context,
+				FocusModeSettingsScene.id,
+				true,
+				selection,
+			);
+		},
+	});
+}
 
 export class FocusModeScene extends ActionUIScene {
 	static readonly id = "focus_mode";
@@ -25,27 +56,7 @@ export class FocusModeScene extends ActionUIScene {
 		this.addButton(
 			"edu_tools.ui.focus_mode.buttons.freeze",
 			() => {
-				const students = service.students.getOnlineStudents();
-				if (students.length === 0) {
-					sceneManager.openSceneWithContext(context, "not_enough_players", true);
-					return;
-				}
-				sceneManager.openSceneWithContext(context, "player_select", true, {
-					everybodyLabel: "§lEverybody§r (also covers students who join later)",
-					players: students.map((s) => ({
-						id: s.id,
-						name: s.name,
-						status: statusFor(service.getEntries().effective(s.id), "Frozen"),
-					})),
-					onSelected: (selection: Selection) => {
-						sceneManager.openSceneWithContext(
-							context,
-							FocusModeSettingsScene.id,
-							true,
-							selection,
-						);
-					},
-				});
+				openFreezePicker(sceneManager, context, service);
 			},
 			"textures/edu_tools/ui/main/focus_mode",
 		);
@@ -101,15 +112,18 @@ export class FocusModeSettingsScene extends ModalUIScene {
 		super(FocusModeSettingsScene.id, context.getSourcePlayer());
 		this.setContext(context);
 
-		let minutes: number | null = DURATIONS[DEFAULT_DURATION_INDEX].minutes;
+		const saved = loadChoices(world, "focus_choices", {
+			duration: DEFAULT_DURATION_INDEX,
+		});
+		let durationIndex = saved.duration;
 		let message = "";
 		this.addDropdown(
 			`How long should ${describeSelection(selection)} stay frozen?`,
 			DURATIONS.map((d) => d.label),
 			(index: number) => {
-				minutes = DURATIONS[index].minutes;
+				durationIndex = index;
 			},
-			{ defaultValueIndex: DEFAULT_DURATION_INDEX },
+			{ defaultValueIndex: saved.duration },
 		);
 		this.addTextField(
 			"Message on their screen (optional)",
@@ -121,6 +135,8 @@ export class FocusModeSettingsScene extends ModalUIScene {
 
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (r.canceled) return;
+			saveChoices(world, "focus_choices", { duration: durationIndex });
+			const minutes = DURATIONS[durationIndex].minutes;
 			service.freeze(selection, minutes, { message });
 			this.player.sendMessage(
 				`§aFrozen: ${describeSelection(selection)} (${

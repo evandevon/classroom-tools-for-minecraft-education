@@ -48,6 +48,7 @@ export class EnvironmentService implements Module {
 				sceneManager.openSceneWithContext(context, EnvironmentScene.id, true);
 			},
 			weight: 70,
+			more: true,
 		};
 	}
 

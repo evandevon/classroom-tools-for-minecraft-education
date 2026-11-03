@@ -6,7 +6,11 @@ import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { Selection, TimedEntries } from "../students/timed-entries.ts";
 import { LockPlayerMechanic } from "./lock_player.mechanic.ts";
-import { LockPlayerScene, LockPlayerSettingsScene } from "./lock_player.scene.ts";
+import {
+	LockPlayerScene,
+	LockPlayerSettingsScene,
+	openLockPicker,
+} from "./lock_player.scene.ts";
 
 export type LockCentre = "point" | "each" | "follow";
 
@@ -72,7 +76,11 @@ export class LockPlayerService implements Module {
 			labelKey: "edu_tools.ui.main.buttons.lock_player",
 			iconPath: "textures/edu_tools/ui/main/lock_player",
 			handler: (sceneManager: SceneManager, context: SceneContext) => {
-				sceneManager.openSceneWithContext(context, LockPlayerScene.id, true);
+				if (this.entries.isEmpty()) {
+					openLockPicker(sceneManager, context, this);
+				} else {
+					sceneManager.openSceneWithContext(context, LockPlayerScene.id, true);
+				}
 			},
 			weight: 20,
 		};
