@@ -1,5 +1,5 @@
 {
-  "name": "simple-classroom-tools-build",
+  "name": "classroom-tools-build",
   "private": true,
   "scripts": { "build": "bash build.sh" },
   "devDependencies": {

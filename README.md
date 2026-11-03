@@ -1,8 +1,8 @@
-# Simple Classroom Tools
+# Classroom Tools for Minecraft Education
 
 A simple classroom management add-on for Minecraft Education. Warn, freeze or lock students, run a visible timer, mark and visit student builds, and hold a safe class showcase.
 
-Simple Classroom Tools is a modified version of [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS. It is an independent project and is not made or endorsed by Shapescape.
+Classroom Tools is a modified version of [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS. It is an independent project and is not made or endorsed by Shapescape.
 
 > **Testing status:** Try this add-on in a copy of your world with a student account before using it in a lesson. Minecraft Education updates can change how add-ons behave.
 
@@ -32,7 +32,7 @@ Make a copy of your world first, because some packs can't be cleanly removed lat
 
 1. Go to **Play → View My Worlds**, then click the **pencil icon** next to the world.
 2. Scroll to **Add-Ons**, click **Behavior Packs**, then open **My Packs**.
-3. Select **Simple Classroom Tools** and click **Activate**.
+3. Select **Classroom Tools** and click **Activate**.
 4. Check that it's also active under **Resource Packs**.
 5. If the world uses Educator Tools, deactivate that under both lists. The two add-ons share item IDs and shouldn't run together.
 6. **Open the world yourself first.** The first person to open it with the pack on becomes the teacher.
@@ -166,7 +166,7 @@ npm install
 npm run build
 ```
 
-This creates `simple_build/Simple_Classroom_Tools.mcaddon`.
+This creates `simple_build/Classroom_Tools.mcaddon`.
 
 - **Code:** `regolith/filters_data/modular_mc/educator_tools/logic`
 - **Pack files, text and icons:** `simple_build/pack`
@@ -181,6 +181,6 @@ Use `simple_build`, not the upstream Regolith setup or GitHub release workflows,
 
 ## Licence
 
-Licensed under the GNU Lesser General Public License v3.0. See [`LICENSE`](LICENSE).
+Licensed under the GNU Lesser General Public License v3.0. See [`LICENSE`](LICENSE) and [`COPYING`](COPYING).
 
 Based on [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS, used under the same licence.
