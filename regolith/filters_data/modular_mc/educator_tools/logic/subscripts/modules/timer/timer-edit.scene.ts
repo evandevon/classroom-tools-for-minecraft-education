@@ -2,6 +2,7 @@ import { RawMessage, world } from "@minecraft/server";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ModalUIScene, RawBodyElement } from "../scene_manager/ui-scene.ts";
+import { DURATIONS } from "../students/timed-entries.ts";
 import { Timer, TimerDuration, TimerService } from "./timer.service.ts";
 
 export class TimerEditScene extends ModalUIScene {
@@ -122,6 +123,22 @@ export class TimerEditScene extends ModalUIScene {
 			},
 		);
 
+		this.addDropdown(
+			"When time is up",
+			[
+				"Do nothing",
+				...DURATIONS.map((d) =>
+					d.minutes === null
+						? "Freeze the class until I release them"
+						: `Freeze the class for ${d.label}`
+				),
+			],
+			(index: number): void => {
+				context.setData("freeze_at_end", index);
+			},
+			{ defaultValueIndex: timer?.freezeAtEnd ?? 0 },
+		);
+
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (!r.canceled) {
 				this.applyChanges(context);
@@ -141,6 +158,7 @@ export class TimerEditScene extends ModalUIScene {
 			duration: duration,
 			entityShown: showTimer,
 			countOffline: countOffline,
+			freezeAtEnd: context.getData("freeze_at_end") ?? 0,
 		};
 
 		if (this.timerService.getTimer()) {

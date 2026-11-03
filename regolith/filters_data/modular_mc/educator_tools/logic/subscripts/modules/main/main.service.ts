@@ -1,6 +1,6 @@
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { MainScene, MoreScene } from "./main.scene.ts";
+import { MainScene } from "./main.scene.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { ItemService } from "../item/item.service.ts";
 import { StudentsService } from "../students/students.service.ts";
@@ -14,7 +14,6 @@ export interface ButtonConfig {
   handler: (sceneManager: SceneManager, context: SceneContext) => void;
   weight?: number; // Optional weight for sorting buttons
   visible?: () => boolean; // Hide the button when it would do nothing
-  more?: boolean; // Show it on the More screen instead of the main menu
 }
 
 /**
@@ -97,12 +96,6 @@ export class MainService implements Module {
     this.registerDefaultButtons();
 
     sceneManager.registerScene(
-      MoreScene.id,
-      (manager: SceneManager, context: SceneContext) => {
-        new MoreScene(manager, context, this);
-      },
-    );
-    sceneManager.registerScene(
       MainScene.id,
       (manager: SceneManager, context: SceneContext) => {
         // Create a new instance of MainScene with this service
@@ -115,13 +108,5 @@ export class MainService implements Module {
    * Registers the default buttons for the main menu
    */
   private registerDefaultButtons(): void {
-    this.registerButton("more", {
-      labelKey: "edu_tools.ui.main.buttons.more",
-      iconPath: "textures/edu_tools/ui/main/gamemode",
-      handler: (sceneManager: SceneManager, context: SceneContext) => {
-        sceneManager.openSceneWithContext(context, MoreScene.id, true);
-      },
-      weight: 100000,
-    });
   }
 }

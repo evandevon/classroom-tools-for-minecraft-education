@@ -1,5 +1,7 @@
 import { CachedStorage, PropertyStorage } from "@shapescape/storage";
-import { Module } from "../../module-manager.ts";
+import { Module, ModuleManager } from "../../module-manager.ts";
+import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
+import { DURATIONS } from "../students/timed-entries.ts";
 import {
   Entity,
   EntityHealthComponent,
@@ -41,6 +43,8 @@ export interface Timer {
   lastRealTime?: number;
   /** If true, offline time counts down (timer continues while game is closed). If false, offline time is paused. */
   countOffline?: boolean;
+  /** 0 = do nothing; otherwise 1 + an index into DURATIONS. */
+  freezeAtEnd?: number;
 }
 
 /**
@@ -488,7 +492,18 @@ export class TimerService implements Module {
       world.getPlayers().forEach((player) => {
         player.playSound("random.anvil_use", { volume: 0.3, pitch: 2 });
       });
+      const freezeAtEnd = timer.freezeAtEnd ?? 0;
       this.clearTimer();
+      if (freezeAtEnd > 0) {
+        const focus = ModuleManager.getInstance().getModule<FocusModeService>(
+          FocusModeService.id,
+        );
+        focus?.freeze(
+          focus.classSelection(),
+          DURATIONS[freezeAtEnd - 1].minutes,
+          { message: "Time is up" },
+        );
+      }
       return;
     }
 

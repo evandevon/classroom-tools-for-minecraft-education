@@ -62,6 +62,25 @@ export class FocusModeService implements Module {
 		);
 	}
 
+	getExtraMainButtons(): [string, ButtonConfig][] {
+		return [[
+			"freeze_class",
+			{
+				labelKey: "edu_tools.ui.main.buttons.freeze_class",
+				iconPath: "textures/edu_tools/ui/focus_mode/global_disable",
+				handler: (sceneManager: SceneManager, context: SceneContext) => {
+					sceneManager.openSceneWithContext(
+						context,
+						FocusModeSettingsScene.id,
+						true,
+						this.classSelection(),
+					);
+				},
+				weight: 15,
+			},
+		]];
+	}
+
 	getMainButton(): ButtonConfig {
 		return {
 			labelKey: "edu_tools.ui.main.buttons.focus_mode",
@@ -74,6 +93,17 @@ export class FocusModeService implements Module {
 				}
 			},
 			weight: 10,
+		};
+	}
+
+	/** Everybody, including students who join later. */
+	classSelection(): Selection {
+		return {
+			everybody: true,
+			players: this.students.getOnlineStudents().map((s) => ({
+				id: s.id,
+				name: s.name,
+			})),
 		};
 	}
 

@@ -3,6 +3,7 @@ import { Module, ModuleManager } from "../../module-manager.ts";
 import {
 	BuildMarker,
 	BuildMarkerService,
+	markerLabel,
 } from "../build_marker/build_marker.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
@@ -151,7 +152,7 @@ class TeleportSelfScene extends ActionUIScene {
 		}
 		for (const { marker } of service.markers()) {
 			this.addButton(
-				`${marker.name}'s marker`,
+				markerLabel(marker),
 				() => {
 					this.player.teleport(marker.location, {
 						dimension: world.getDimension(marker.dimensionId),
@@ -231,7 +232,7 @@ class TeleportScene extends ActionUIScene {
 		}
 		for (const { marker } of service.markers()) {
 			this.addButton(
-				`${marker.name}'s marker`,
+				markerLabel(marker),
 				() => {
 					for (const { id } of selection.players) {
 						(world.getEntity(id) as Player | undefined)?.teleport(
@@ -240,7 +241,7 @@ class TeleportScene extends ActionUIScene {
 						);
 					}
 					this.player.sendMessage(
-						`§aTeleported ${describeSelection(selection)} to ${marker.name}'s marker.`,
+						`§aTeleported ${describeSelection(selection)} to ${markerLabel(marker)}.`,
 					);
 				},
 				"textures/edu_tools/ui/main/build_markers",
