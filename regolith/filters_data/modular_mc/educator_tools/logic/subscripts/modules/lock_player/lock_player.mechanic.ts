@@ -1,6 +1,5 @@
 import { Player, system, Vector3, world } from "@minecraft/server";
 import { Polyfill, Vec3 } from "@bedrock-oss/bedrock-boost";
-import { formatTimeLeft } from "../students/timed-entries.ts";
 import { LockPlayerService } from "./lock_player.service.ts";
 
 /** Keeps locked students inside their area: a push first, then a teleport. */
@@ -50,11 +49,6 @@ export class LockPlayerMechanic {
 					continue;
 				}
 				this.keepInside(player, area.center, entry.data.radius, entry.data.showBoundary, area.dimensionId);
-				if (everySecond && entry.until !== null) {
-					player.onScreenDisplay.setActionBar(
-						`§eLocked to this area: ${formatTimeLeft(entry.until)} left`,
-					);
-				}
 			} catch (e) {
 				console.warn(`Lock failed for ${player.name}: ${e}`);
 			}

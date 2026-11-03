@@ -11,6 +11,8 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
+import { TimerService } from "../timer/timer.service.ts";
+import { formatTimeLeft } from "./timed-entries.ts";
 import {
 	PlayerSelectOptions,
 	PlayerSelectScene,
@@ -46,7 +48,7 @@ export class StudentsService implements Module {
 				}
 			},
 		);
-		system.runInterval(() => this.remindTeacher(), 20);
+		system.runInterval(() => this.updateScreens(), 20);
 	}
 
 	registerScenes(sceneManager: SceneManager): void {
@@ -119,16 +121,34 @@ export class StudentsService implements Module {
 		);
 	}
 
-	/** Keeps a small reminder on the teacher's screen while anyone is held. */
-	private remindTeacher(): void {
-		const teacher = this.getTeacher();
-		if (!teacher) return;
+	/** Shows the timer to everybody, plus each person's own lock or reminder. */
+	private updateScreens(): void {
+		const timer = this.moduleManager.getModule<TimerService>(TimerService.id)
+			?.getHudText();
 		const students = this.getOnlineStudents();
-		const frozen = students.filter((s) => this.focus()?.isFrozen(s.id)).length;
-		const locked = students.filter((s) => this.lock()?.isLocked(s.id)).length;
-		if (frozen + locked === 0) return;
-		teacher.onScreenDisplay.setActionBar(
-			`§eFrozen: ${frozen}  |  Locked: ${locked}`,
-		);
+		for (const player of world.getAllPlayers()) {
+			const parts = timer ? [timer] : [];
+			if (this.isTeacher(player.id)) {
+				const frozen =
+					students.filter((s) => this.focus()?.isFrozen(s.id)).length;
+				const locked =
+					students.filter((s) => this.lock()?.isLocked(s.id)).length;
+				if (frozen + locked > 0) {
+					parts.push(`Frozen: ${frozen}`, `Locked: ${locked}`);
+				}
+			} else {
+				const entry = this.lock()?.getEntries().effective(player.id);
+				if (entry) {
+					parts.push(
+						entry.until === null
+							? "Locked to this area"
+							: `Locked: ${formatTimeLeft(entry.until)} left`,
+					);
+				}
+			}
+			if (parts.length) {
+				player.onScreenDisplay.setActionBar(`§e${parts.join("  |  ")}`);
+			}
+		}
 	}
 }

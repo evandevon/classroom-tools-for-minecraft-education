@@ -1,4 +1,6 @@
 import { Player, system, world } from "@minecraft/server";
+import { ModuleManager } from "../../module-manager.ts";
+import { StudentsService } from "../students/students.service.ts";
 import { TimerService } from "./timer.service.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 
@@ -27,6 +29,11 @@ export class TimerMechanic {
 	}
 
 	onTimerClicked(player: Player): void {
+		// Students can see the timer, but only the teacher can change it.
+		const students = ModuleManager.getInstance().getModule<StudentsService>(
+			StudentsService.id,
+		);
+		if (!students?.isTeacher(player.id)) return;
 		const sceneManager = SceneManager.getInstance();
 		sceneManager.createContextAndOpenScene(player, "timer");
 	}

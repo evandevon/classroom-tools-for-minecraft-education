@@ -438,6 +438,17 @@ export class TimerService implements Module {
     }
   }
 
+  /** Short countdown text for players' screens, if a timer has been started. */
+  getHudText(): string | undefined {
+    const timer = this.getTimer();
+    if (!timer?.started) return undefined;
+    const total = Math.ceil(this.getRemainingTime() / 1000);
+    if (total <= 0) return undefined;
+    const seconds = total % 60;
+    const time = `${Math.floor(total / 60)}:${seconds < 10 ? "0" : ""}${seconds}`;
+    return timer.isPaused ? `Timer paused: ${time}` : `Timer: ${time}`;
+  }
+
   /**
    * Updates the visual representation of the timer entity
    * Shows countdown time and updates health bar to represent progress
@@ -471,8 +482,12 @@ export class TimerService implements Module {
 
     const remainingTime = this.getRemainingTime();
 
-    // Timer expired - clear it
+    // Timer expired - announce it and clear it
     if (remainingTime <= 0) {
+      world.sendMessage([{ translate: "edu_tools.message.timer.times_up" }]);
+      world.getPlayers().forEach((player) => {
+        player.playSound("random.anvil_use", { volume: 0.3, pitch: 2 });
+      });
       this.clearTimer();
       return;
     }
@@ -480,18 +495,6 @@ export class TimerService implements Module {
     const remainingSeconds = remainingTime / 1000;
     // Show countdown warnings and final alert in the last 11 seconds
     if (remainingSeconds < 11) {
-      // Show "times up" message only in the final 50ms (exactly 1 tick; 1 tick = 50ms in Minecraft)
-      // This prevents premature "times up" messages while still giving a final warning
-      if (remainingTime < 50) {
-        world.sendMessage([
-          {
-            translate: "edu_tools.message.timer.times_up",
-          },
-        ]);
-        world.getPlayers().forEach((player) => {
-          player.playSound("random.anvil_use", { volume: 0.3, pitch: 2 });
-        });
-      } else {
         // Countdown warnings for 1-10 seconds remaining
         world.sendMessage([
           {
@@ -506,7 +509,6 @@ export class TimerService implements Module {
         world.getPlayers().forEach((player) => {
           player.playSound("random.anvil_land", { volume: 0.3, pitch: 2 });
         });
-      }
     }
 
     // Update display with remaining time
