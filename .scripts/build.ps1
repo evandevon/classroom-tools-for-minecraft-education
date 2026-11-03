@@ -1,2 +1,0 @@
-cd regolith
-regolith run

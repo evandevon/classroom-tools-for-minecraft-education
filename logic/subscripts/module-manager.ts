@@ -1,0 +1,192 @@
+import { PropertyStorage, CachedStorage } from "@shapescape/storage";
+import { world } from "@minecraft/server";
+import { SceneManager } from "./modules/scene_manager/scene-manager.ts";
+import { ItemService } from "./modules/item/item.service.ts";
+import { ButtonConfig, MainService } from "./modules/main/main.service.ts";
+import { StudentsService } from "./modules/students/students.service.ts";
+import { BuildMarkerService } from "./modules/build_marker/build_marker.service.ts";
+import { WarningService } from "./modules/warning/warning.service.ts";
+import { BehaviourLogService } from "./modules/behaviour_log/behaviour_log.service.ts";
+import { ShowcaseService } from "./modules/showcase/showcase.service.ts";
+import { GamemodeService } from "./modules/gamemode/gamemode.service.ts";
+import { TeleportService } from "./modules/teleport/teleport.service.ts";
+import { ScenesService } from "./modules/scenes/scenes.service.ts";
+import { PlayerStatusService } from "./modules/player_status/player_status.service.ts";
+import { FocusModeService } from "./modules/focus_mode/focus_mode.service.ts";
+import { EnvironmentService } from "./modules/environment/environment.service.ts";
+import { LockPlayerService } from "./modules/lock_player/lock_player.service.ts";
+import { TimerService } from "./modules/timer/timer.service.ts";
+
+/**
+ * Interface that all modules must implement.
+ * Modules have an ID property that uniquely identifies them in the system.
+ */
+export interface Module {
+	readonly id: string;
+	initialize?(): void; // Optional method for module initialization
+	/**
+	 * Optional method for modules to register their scenes with the SceneManager.
+	 * @param sceneManager - The SceneManager instance to register scenes with.
+	 */
+	registerScenes?(sceneManager: SceneManager): void;
+	getMainButton?(): ButtonConfig;
+	getExtraMainButtons?(): [string, ButtonConfig][];
+}
+
+export class ModuleManager {
+	private static instance: ModuleManager;
+	private readonly modules: Map<string, Module> = new Map();
+	private readonly storage: PropertyStorage;
+
+	/**
+	 * Private constructor to prevent direct instantiation.
+	 * @param storage - The property storage to use.
+	 */
+	private constructor(storage: PropertyStorage) {
+		this.storage = storage;
+		this.loadDefaultModules();
+	}
+
+	/**
+	 * Gets the singleton instance of the ModuleManager.
+	 * @returns The ModuleManager instance.
+	 */
+	public static getInstance(): ModuleManager {
+		if (!ModuleManager.instance) {
+			// Create with default world storage if not provided
+			const storage = new CachedStorage(world);
+			ModuleManager.instance = new ModuleManager(storage);
+		}
+		return ModuleManager.instance;
+	}
+
+	/**
+	 * Initialize the default modules.
+	 */
+	private loadDefaultModules(): void {
+		const sceneManager = SceneManager.getInstance(this, this.storage);
+		const mainService = new MainService(this);
+
+		// Register services
+		this.registerModule(new StudentsService(this));
+		this.registerModule(new ItemService(this));
+		this.registerModule(sceneManager);
+		this.registerModule(mainService);
+		this.registerModule(new ScenesService());
+		this.registerModule(new PlayerStatusService());
+		this.registerModule(new BehaviourLogService());
+		this.registerModule(new WarningService(this));
+		this.registerModule(new FocusModeService(this));
+		this.registerModule(new LockPlayerService(this));
+		this.registerModule(new TimerService());
+		this.registerModule(new BuildMarkerService(this));
+		this.registerModule(new ShowcaseService(this));
+		this.registerModule(new TeleportService(this));
+		this.registerModule(new GamemodeService(this));
+		this.registerModule(new EnvironmentService(this.storage));
+
+		// Initialize all modules
+		this.initializeModules();
+		// Register scenes for all modules that implement registerScenes
+		this.registerAllModuleScenes(sceneManager);
+
+		// Register main button for the main service
+		for (const module of this.modules.values()) {
+			if (typeof module.getMainButton === "function") {
+				const buttonConfig = module.getMainButton();
+				if (buttonConfig) {
+					mainService.registerButton(module.id, buttonConfig);
+				}
+			}
+			for (const [id, config] of module.getExtraMainButtons?.() ?? []) {
+				mainService.registerButton(id, config);
+			}
+		}
+	}
+
+	private initializeModules(): void {
+		for (const module of this.modules.values()) {
+			if (typeof module.initialize === "function") {
+				module.initialize();
+			}
+		}
+	}
+
+	/**
+	 * Registers a module.
+	 * @param module - The module to register.
+	 */
+	registerModule(module: Module): void {
+		if (this.modules.has(module.id)) {
+			throw new Error(`Module ${module.id} is already registered.`);
+		}
+		this.modules.set(module.id, module);
+	}
+
+	/**
+	 * Calls the registerScenes method on a module if it implements it.
+	 * @param moduleId - The ID of the module.
+	 * @param sceneManager - The SceneManager instance.
+	 */
+	registerModuleScenes(moduleId: string, sceneManager: SceneManager): void {
+		const module = this.getModule<Module>(moduleId);
+		if (module && typeof module.registerScenes === "function") {
+			module.registerScenes(sceneManager);
+		}
+	}
+
+	/**
+	 * Registers scenes for all modules that implement the registerScenes method.
+	 * @param sceneManager - The SceneManager instance.
+	 */
+	registerAllModuleScenes(sceneManager: SceneManager): void {
+		for (const moduleId of this.getAllModules()) {
+			this.registerModuleScenes(moduleId, sceneManager);
+		}
+	}
+
+	/**
+	 * Retrieves a module by its ID.
+	 * @param id - The ID of the module to retrieve.
+	 * @returns The module object if found, otherwise undefined.
+	 */
+	getModule<T extends Module>(id: string): T | undefined {
+		return this.modules.get(id) as T | undefined;
+	}
+
+	/**
+	 * Unregisters a module by its ID.
+	 * @param id - The ID of the module to unregister.
+	 */
+	unregisterModule(id: string): void {
+		if (!this.modules.has(id)) {
+			throw new Error(`Module ${id} is not registered.`);
+		}
+		this.modules.delete(id);
+	}
+
+	/**
+	 * Checks if a module is registered.
+	 * @param id - The ID of the module to check.
+	 * @returns True if the module is registered, otherwise false.
+	 */
+	isModuleRegistered(id: string): boolean {
+		return this.modules.has(id);
+	}
+
+	/**
+	 * Retrieves all registered modules.
+	 * @returns An array of all registered module IDs.
+	 */
+	getAllModules(): string[] {
+		return Array.from(this.modules.keys());
+	}
+
+	/**
+	 * Gets the storage used by the ModuleManager.
+	 * @returns The PropertyStorage instance.
+	 */
+	getStorage(): PropertyStorage {
+		return this.storage;
+	}
+}
