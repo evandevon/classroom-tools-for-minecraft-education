@@ -18,11 +18,14 @@ export class BuildMarkersScene extends ActionUIScene {
 		super(BuildMarkersScene.id, context.getSourcePlayer());
 		this.setContext(context);
 		const markers = service.getMarkers();
-		this.setSimpleBody(
-			markers.length
-				? "edu_tools.ui.build_markers.body"
-				: "edu_tools.ui.build_markers.empty",
-		);
+		const missing = service.students.getOnlineStudents()
+			.filter((s) => !service.getMarker(s.id))
+			.map((s) => s.name);
+		this.setRawBody([{
+			text: missing.length
+				? `§lNo marker yet:§r ${missing.join(", ")}`
+				: "Every student online has a marker.",
+		}]);
 		for (const { studentId, marker } of markers) {
 			this.addButton(
 				marker.name,

@@ -28,7 +28,7 @@ export function openFreezePicker(
 		players: students.map((s) => ({
 			id: s.id,
 			name: s.name,
-			status: statusFor(service.getEntries().effective(s.id), "Frozen"),
+			status: statusFor(service.getEntries().effective(s.id), "In Focus"),
 		})),
 		onSelected: (selection: Selection) => {
 			sceneManager.openSceneWithContext(
@@ -67,10 +67,10 @@ export class FocusModeScene extends ActionUIScene {
 				const held = heldStudents(
 					service.students.getOnlineStudents(),
 					service.getEntries(),
-					"Frozen",
+					"In Focus",
 				);
 				if (held.length === 0) {
-					this.player.sendMessage("§eNobody is frozen.");
+					this.player.sendMessage("§eNobody is in Focus Mode.");
 					return;
 				}
 				sceneManager.openSceneWithContext(context, "player_select", true, {
@@ -114,11 +114,13 @@ export class FocusModeSettingsScene extends ModalUIScene {
 
 		const saved = loadChoices(world, "focus_choices", {
 			duration: DEFAULT_DURATION_INDEX,
+			mute: true,
 		});
 		let durationIndex = saved.duration;
+		let mute = saved.mute;
 		let message = "";
 		this.addDropdown(
-			`How long should ${describeSelection(selection)} stay frozen?`,
+			`How long should ${describeSelection(selection)} stay in Focus Mode?`,
 			DURATIONS.map((d) => d.label),
 			(index: number) => {
 				durationIndex = index;
@@ -133,13 +135,21 @@ export class FocusModeSettingsScene extends ModalUIScene {
 			},
 		);
 
+		this.addToggle(
+			"Stop them using chat",
+			(value: boolean) => {
+				mute = value;
+			},
+			{ defaultValue: saved.mute },
+		);
+
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (r.canceled) return;
-			saveChoices(world, "focus_choices", { duration: durationIndex });
+			saveChoices(world, "focus_choices", { duration: durationIndex, mute });
 			const minutes = DURATIONS[durationIndex].minutes;
-			service.freeze(selection, minutes, { message });
+			service.freeze(selection, minutes, { message, mute });
 			this.player.sendMessage(
-				`§aFrozen: ${describeSelection(selection)} (${
+				`§aIn Focus Mode: ${describeSelection(selection)} (${
 					minutes === null ? "until you release them" : `${minutes} min`
 				})`,
 			);

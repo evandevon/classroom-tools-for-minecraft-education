@@ -6,16 +6,19 @@ export class FocusModeMechanic {
 
 	initialize(): void {
 		system.runInterval(() => this.tick(), 20);
+		world.afterEvents.playerLeave.subscribe((event) => {
+			this.service.forgetSession(event.playerId);
+		});
 	}
 
 	tick(): void {
 		const ended = this.service.getEntries().sweep();
 		if (ended.everybody) {
-			this.service.students.notifyTeacher("§eFreeze time is up for everybody.");
+			this.service.students.notifyTeacher("§eFocus Mode time is up for everybody.");
 		}
 		if (ended.names.length) {
 			this.service.students.notifyTeacher(
-				`§eFreeze time is up: ${ended.names.join(", ")}`,
+				`§eFocus Mode time is up: ${ended.names.join(", ")}`,
 			);
 		}
 		for (const player of world.getAllPlayers()) {

@@ -91,7 +91,7 @@ class SetGamemodeScene extends ActionUIScene {
 					const frozen = service.setGamemode(selection, gamemode);
 					this.player.sendMessage(
 						frozen
-							? `§eGame mode changed. ${frozen} frozen student(s) were skipped: release them first.`
+							? `§eGame mode changed. ${frozen} student(s) in Focus Mode were skipped: release them first.`
 							: `§aGame mode changed for ${describeSelection(selection)}.`,
 					);
 				},

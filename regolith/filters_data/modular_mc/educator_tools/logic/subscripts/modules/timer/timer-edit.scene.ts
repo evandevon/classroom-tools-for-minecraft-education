@@ -129,8 +129,8 @@ export class TimerEditScene extends ModalUIScene {
 				"Do nothing",
 				...DURATIONS.map((d) =>
 					d.minutes === null
-						? "Freeze the class until I release them"
-						: `Freeze the class for ${d.label}`
+						? "Focus Mode for the class, until I release them"
+						: `Focus Mode for the class, ${d.label}`
 				),
 			],
 			(index: number): void => {

@@ -72,7 +72,7 @@ export class StudentsService implements Module {
 				this.focus()?.releaseAll();
 				this.lock()?.releaseAll();
 				context.getSourcePlayer().sendMessage(
-					"§aAll freezes and locks have been removed.",
+					"§aEverybody has been released from Focus Mode and locks.",
 				);
 			},
 			weight: 5,
@@ -137,7 +137,7 @@ export class StudentsService implements Module {
 				const locked =
 					students.filter((s) => this.lock()?.isLocked(s.id)).length;
 				if (frozen + locked > 0) {
-					parts.push(`Frozen: ${frozen}`, `Locked: ${locked}`);
+					parts.push(`In Focus: ${frozen}`, `Locked: ${locked}`);
 				}
 			} else {
 				const entry = this.lock()?.getEntries().effective(player.id);

@@ -20,6 +20,7 @@ import {
 
 export interface FocusData {
 	message?: string;
+	mute?: boolean;
 }
 
 /** Freezes individual students, or everybody, for a chosen time. */
@@ -28,6 +29,8 @@ export class FocusModeService implements Module {
 	public readonly id = FocusModeService.id;
 	private readonly entries = new TimedEntries<FocusData>(world, "focus_state");
 	private readonly mechanic = new FocusModeMechanic(this);
+	private readonly mutedThisSession = new Set<string>();
+	private muteFailureReported = false;
 	students!: StudentsService;
 	private playerStatus!: PlayerStatusService;
 
@@ -133,8 +136,34 @@ export class FocusModeService implements Module {
 		return player.getDynamicProperty("focus_mode") === true;
 	}
 
+	/** Chat is muted once per session, and again if the student rejoins. */
+	private setMuted(player: Player, muted: boolean): void {
+		try {
+			player.runCommand(`ability @s mute ${muted}`);
+		} catch (e) {
+			console.warn(`Could not change mute for ${player.name}: ${e}`);
+			if (!this.muteFailureReported) {
+				this.muteFailureReported = true;
+				this.students.notifyTeacher("§cCould not mute chat on this device.");
+			}
+			return;
+		}
+		if (muted) this.mutedThisSession.add(player.id);
+		else this.mutedThisSession.delete(player.id);
+		player.setDynamicProperty("focus_muted", muted);
+	}
+
+	forgetSession(playerId: string): void {
+		this.mutedThisSession.delete(playerId);
+	}
+
 	applyFreeze(player: Player, entry: TimedEntry<FocusData>): void {
 		player.setDynamicProperty("focus_mode", true);
+		if (entry.data.mute && !this.mutedThisSession.has(player.id)) {
+			this.setMuted(player, true);
+		} else if (!entry.data.mute && player.getDynamicProperty("focus_muted")) {
+			this.setMuted(player, false);
+		}
 		this.playerStatus.registerHolder(player, this.id);
 		if (!this.playerStatus.hasGameModeSaved(player)) {
 			this.playerStatus.savePlayerGameMode(player);
@@ -160,6 +189,9 @@ export class FocusModeService implements Module {
 	}
 
 	removeFreeze(player: Player): void {
+		if (player.getDynamicProperty("focus_muted")) {
+			this.setMuted(player, false);
+		}
 		this.playerStatus.deleteHolder(player, this.id);
 		if (this.playerStatus.getHolders(player).length === 0) {
 			this.playerStatus.restoreAllPlayerState(player);
