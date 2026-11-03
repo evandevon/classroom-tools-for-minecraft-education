@@ -29,7 +29,6 @@ export interface Module {
 	 */
 	registerScenes?(sceneManager: SceneManager): void;
 	getMainButton?(): ButtonConfig;
-	getExtraMainButtons?(): [string, ButtonConfig][];
 }
 
 export class ModuleManager {
@@ -95,9 +94,6 @@ export class ModuleManager {
 				if (buttonConfig) {
 					mainService.registerButton(module.id, buttonConfig);
 				}
-			}
-			for (const [id, config] of module.getExtraMainButtons?.() ?? []) {
-				mainService.registerButton(id, config);
 			}
 		}
 	}
