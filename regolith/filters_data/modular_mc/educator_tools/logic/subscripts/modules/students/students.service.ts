@@ -11,7 +11,7 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
-import { TrustedPlayersScene } from "./trusted-players.scene.ts";
+import { RolesScene } from "./roles.scene.ts";
 import { TimerService } from "../timer/timer.service.ts";
 import { formatTimeLeft } from "./timed-entries.ts";
 import {
@@ -21,15 +21,17 @@ import {
 
 /**
  * Knows who the teacher is. There is exactly one: the first person to open
- * the world with this pack on. The teacher can also trust other players, who
- * get every tool except managing the trusted list. An operator can take over with
+ * the world with this pack on. Teachers can assign more teachers, who have
+ * full control, and trusted students, who get a small set of travel tools. An operator can take over with
  * /scriptevent edu_tools:claim_teacher (for example on a copied world).
  */
 export class StudentsService implements Module {
 	static readonly id = "students";
 	public readonly id = StudentsService.id;
 	private static readonly TEACHER_KEY = "teacher_id";
-	private static readonly TRUSTED_KEY = "trusted_players";
+	// Keeps the old key so anyone given full authority in v1.8 stays a teacher.
+	private static readonly TEACHERS_KEY = "trusted_players";
+	private static readonly TRUSTED_STUDENTS_KEY = "trusted_students";
 
 	constructor(private readonly moduleManager: ModuleManager) {}
 
@@ -38,7 +40,7 @@ export class StudentsService implements Module {
 			if (!this.getTeacherId()) this.setTeacher(event.player);
 			// Someone removed while offline shouldn't keep a toolbox.
 			system.runTimeout(() => {
-				if (!this.isStaff(event.player.id)) {
+				if (!this.canUseToolbox(event.player.id)) {
 					this.items()?.removeEducatorTool(event.player);
 				}
 			}, 2);
@@ -51,7 +53,8 @@ export class StudentsService implements Module {
 				) {
 					const player = event.sourceEntity as Player;
 					this.setTeacher(player);
-					this.removeTrusted(player.id);
+					this.removeTeacher(player.id);
+					this.removeTrustedStudent(player.id);
 					this.items()?.giveEducatorTool(player);
 					player.sendMessage("§aYou are now the teacher in this world.");
 				}
@@ -62,9 +65,9 @@ export class StudentsService implements Module {
 
 	registerScenes(sceneManager: SceneManager): void {
 		sceneManager.registerScene(
-			TrustedPlayersScene.id,
+			RolesScene.id,
 			(manager: SceneManager, context: SceneContext) => {
-				new TrustedPlayersScene(manager, context, this);
+				new RolesScene(manager, context, this);
 			},
 		);
 		sceneManager.registerScene(
@@ -82,19 +85,14 @@ export class StudentsService implements Module {
 	getExtraMainButtons(): [string, ButtonConfig][] {
 		return [
 			[
-				"trusted_players",
+				"roles",
 				{
-					labelKey: "edu_tools.ui.main.buttons.trusted_players",
+					labelKey: "edu_tools.ui.main.buttons.roles",
 					iconPath: "textures/edu_tools/ui/main/trusted_players",
 					handler: (sceneManager: SceneManager, context: SceneContext) => {
-						sceneManager.openSceneWithContext(
-							context,
-							TrustedPlayersScene.id,
-							true,
-						);
+						sceneManager.openSceneWithContext(context, RolesScene.id, true);
 					},
 					weight: 80,
-					visible: (player) => this.isTeacher(player.id),
 				},
 			],
 			[
@@ -134,57 +132,99 @@ export class StudentsService implements Module {
 		return this.moduleManager.getModule<ItemService>(ItemService.id);
 	}
 
-	/** Trusted players, by ID. Names are kept so offline players can be listed. */
-	getTrusted(): Record<string, string> {
-		const raw = world.getDynamicProperty(StudentsService.TRUSTED_KEY);
+	private readList(key: string): Record<string, string> {
+		const raw = world.getDynamicProperty(key);
 		if (typeof raw !== "string") return {};
 		try {
 			return JSON.parse(raw);
 		} catch (e) {
-			console.warn(`Could not read trusted players: ${e}`);
+			console.warn(`Could not read ${key}: ${e}`);
 			return {};
 		}
 	}
 
-	private saveTrusted(trusted: Record<string, string>): void {
-		world.setDynamicProperty(
-			StudentsService.TRUSTED_KEY,
-			JSON.stringify(trusted),
-		);
+	private saveList(key: string, list: Record<string, string>): void {
+		world.setDynamicProperty(key, JSON.stringify(list));
 	}
 
-	isTrusted(playerId: string): boolean {
-		return playerId in this.getTrusted();
+	/** Teachers other than the original one, by ID. */
+	getAssignedTeachers(): Record<string, string> {
+		return this.readList(StudentsService.TEACHERS_KEY);
 	}
 
-	/** The teacher or a trusted player. */
+	getTrustedStudents(): Record<string, string> {
+		return this.readList(StudentsService.TRUSTED_STUDENTS_KEY);
+	}
+
+	isTrustedStudent(playerId: string): boolean {
+		return playerId in this.getTrustedStudents();
+	}
+
+	/** Same as isTeacher: kept for places that mean "not a student". */
 	isStaff(playerId: string): boolean {
-		return this.isTeacher(playerId) || this.isTrusted(playerId);
+		return this.isTeacher(playerId);
 	}
 
-	addTrusted(players: { id: string; name: string }[]): void {
-		const trusted = this.getTrusted();
+	/** Who may hold a toolbox. */
+	canUseToolbox(playerId: string): boolean {
+		return this.isTeacher(playerId) || this.isTrustedStudent(playerId);
+	}
+
+	addTeachers(players: { id: string; name: string }[]): void {
+		const teachers = this.getAssignedTeachers();
+		const trusted = this.getTrustedStudents();
+		for (const { id, name } of players) {
+			if (this.getTeacherId() === id) continue;
+			teachers[id] = name;
+			delete trusted[id];
+			const player = world.getEntity(id) as Player | undefined;
+			if (player) {
+				this.items()?.giveEducatorTool(player);
+				player.sendMessage("§aYou are now a teacher in this world.");
+			}
+		}
+		this.saveList(StudentsService.TEACHERS_KEY, teachers);
+		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
+	}
+
+	/** The original teacher isn't on this list, so can't be removed here. */
+	removeTeacher(playerId: string): void {
+		const teachers = this.getAssignedTeachers();
+		if (!(playerId in teachers)) return;
+		delete teachers[playerId];
+		this.saveList(StudentsService.TEACHERS_KEY, teachers);
+		this.afterRoleRemoved(playerId, "§eYou are no longer a teacher here.");
+	}
+
+	addTrustedStudents(players: { id: string; name: string }[]): void {
+		const trusted = this.getTrustedStudents();
 		for (const { id, name } of players) {
 			if (this.isTeacher(id)) continue;
 			trusted[id] = name;
 			const player = world.getEntity(id) as Player | undefined;
 			if (player) {
 				this.items()?.giveEducatorTool(player);
-				player.sendMessage("§aYou are now a trusted player. Use the Classroom Toolbox.");
+				player.sendMessage(
+					"§aYou are now a trusted student. Use the Classroom Toolbox to get around.",
+				);
 			}
 		}
-		this.saveTrusted(trusted);
+		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
 	}
 
-	removeTrusted(playerId: string): void {
-		const trusted = this.getTrusted();
+	removeTrustedStudent(playerId: string): void {
+		const trusted = this.getTrustedStudents();
 		if (!(playerId in trusted)) return;
 		delete trusted[playerId];
-		this.saveTrusted(trusted);
+		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
+		this.afterRoleRemoved(playerId, "§eYou are no longer a trusted student.");
+	}
+
+	private afterRoleRemoved(playerId: string, message: string): void {
 		const player = world.getEntity(playerId) as Player | undefined;
-		if (player && !this.isTeacher(playerId)) {
+		if (player && !this.canUseToolbox(playerId)) {
 			this.items()?.removeEducatorTool(player);
-			player.sendMessage("§eYou are no longer a trusted player.");
+			player.sendMessage(message);
 		}
 	}
 
@@ -205,21 +245,22 @@ export class StudentsService implements Module {
 	}
 
 	isTeacher(playerId: string): boolean {
-		return this.getTeacherId() === playerId;
+		return this.getTeacherId() === playerId ||
+			playerId in this.getAssignedTeachers();
 	}
 
 	getTeacher(): Player | undefined {
 		return world.getAllPlayers().find((p) => this.isTeacher(p.id));
 	}
 
-	/** Online players other than the teacher and trusted players, A to Z. */
+	/** Online players other than teachers, A to Z. Includes trusted students. */
 	getOnlineStudents(): Player[] {
 		return world.getAllPlayers()
 			.filter((p) => !this.isStaff(p.id))
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	/** Tells the teacher and trusted players when something ends by itself. */
+	/** Tells every teacher when something ends by itself. */
 	notifyTeacher(message: string): void {
 		for (const player of world.getAllPlayers()) {
 			if (!this.isStaff(player.id)) continue;

@@ -3,6 +3,7 @@ import { Module, ModuleManager } from "../../module-manager.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { MainScene } from "./main.scene.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
+import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { ItemService } from "../item/item.service.ts";
 import { StudentsService } from "../students/students.service.ts";
 
@@ -15,6 +16,7 @@ export interface ButtonConfig {
   handler: (sceneManager: SceneManager, context: SceneContext) => void;
   weight?: number; // Optional weight for sorting buttons
   visible?: (player: Player) => boolean; // Hide the button when it would do nothing
+  trustedStudents?: boolean; // Also show it to trusted students
 }
 
 /**
@@ -45,7 +47,13 @@ export class MainService implements Module {
     this.itemService?.registerScene("main", {
       priority: -10000,
       condition_callback: (player) => {
-        if (this.students?.isStaff(player.id)) {
+        if (this.students?.isTeacher(player.id)) {
+          return true;
+        } else if (
+          this.students?.isTrustedStudent(player.id) &&
+          !this.moduleManager.getModule<FocusModeService>(FocusModeService.id)
+            ?.isFrozen(player.id)
+        ) {
           return true;
         } else {
           // Send a message to the player that they are not allowed to use the educator tool
@@ -68,6 +76,10 @@ export class MainService implements Module {
    * @param buttonId - Unique identifier for the button
    * @param config - Button configuration including label, icon, and handler
    */
+  isTeacher(playerId: string): boolean {
+    return !!this.students?.isTeacher(playerId);
+  }
+
   public registerButton(buttonId: string, config: ButtonConfig): void {
     this.buttonRegistry.set(buttonId, config);
   }

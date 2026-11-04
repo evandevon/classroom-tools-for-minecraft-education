@@ -43,7 +43,7 @@ To update, install the new file and check that the world lists the new version. 
 
 You get an **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
-Only the teacher and trusted players can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes you or trusted players, and for Warnings, Teleport and Gamemode it covers only students who are online.
+Teachers can use every tool. Trusted students get a smaller menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes teachers, and for Warnings, Teleport and Gamemode it covers only students who are online.
 
 ## Features
 
@@ -80,7 +80,7 @@ Choose students, then set:
 
 ### Timer
 
-Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only you and trusted players can control it.
+Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only teachers can control it.
 
 **When time is up** can do nothing, or put the class in Focus Mode for a set time or until you release them.
 
@@ -122,14 +122,26 @@ Change game mode for selected students or Everybody. Students in Focus Mode are 
 
 Change the weather and time of day for the world.
 
-### Trusted Players
+### Teachers and Trusted Students
 
-Give another teacher, or another person you trust, nearly the same authority as you. Only the teacher sees this option.
+Any teacher can open this menu.
 
-- **Add Trusted Players:** Tick people who are online. They get a Classroom Toolbox straight away.
-- **Remove Trusted Players:** Removes the role and the toolbox, even if they're offline.
+- **Assign as Teacher:** Gives someone full control, including this menu. The person who first opened the world can't be removed here.
+- **Trusted Students:** They get a toolbox with **Build Markers** and **Teleport**, so they can travel to students and markers. They can't warn, freeze, lock or move anyone else, or use coordinates or the other tools. Class-wide tools still apply to them, and they can't open the toolbox while in Focus Mode.
 
-Trusted players can use every other tool, including the Behaviour Log and its Clear Log option, but they can't change who is trusted. Warnings, Focus Mode, locks and showcases don't affect them, and the log doesn't record which staff member took an action. Only trust people you'd trust with those tools.
+Removing either role also takes the toolbox, including from someone who's offline when they return.
+
+### Teleport Requests
+
+**Allow Teleport Requests** turns this on for students, and **Stop Teleport Requests** turns it off.
+
+While it's on, a student's Build Marker opens a menu:
+
+- **Place or Move My Marker**
+- **Ask to Visit Someone:** Choose another student's character or build. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
+- **Return to My Build**
+
+Students can ask once every 20 seconds. Students in Focus Mode or locked to an area can't visit, and teachers can't be requested. Approved visits are added to the Behaviour Log.
 
 ### Behaviour Log
 

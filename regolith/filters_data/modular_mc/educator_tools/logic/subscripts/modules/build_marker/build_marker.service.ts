@@ -13,6 +13,7 @@ import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ShowcaseService } from "../showcase/showcase.service.ts";
+import { TeleportRequestsService } from "../teleport_requests/teleport_requests.service.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { Selection } from "../students/timed-entries.ts";
 import { BuildMarkerScene, BuildMarkersScene } from "./build_marker.scene.ts";
@@ -88,6 +89,7 @@ export class BuildMarkerService implements Module {
 				sceneManager.openSceneWithContext(context, BuildMarkersScene.id, true);
 			},
 			weight: 45,
+			trustedStudents: true,
 		};
 	}
 
@@ -134,6 +136,17 @@ export class BuildMarkerService implements Module {
 			);
 			return;
 		}
+		const requests = this.moduleManager.getModule<TeleportRequestsService>(
+			TeleportRequestsService.id,
+		);
+		if (requests?.isActive() && !this.students.isTeacher(player.id)) {
+			SceneManager.getInstance().createContextAndOpenScene(player, "marker_menu");
+			return;
+		}
+		this.placeForPlayer(player);
+	}
+
+	placeForPlayer(player: Player): void {
 		const moved = !!this.markers[player.id];
 		this.place(player);
 		player.sendMessage(

@@ -7,7 +7,7 @@
         "pack_scope": "world",
         "version": [
             1,
-            8,
+            9,
             0
         ],
         "min_engine_version": [
@@ -32,7 +32,7 @@
             "uuid": "6d7c980c-a832-5826-89b6-45cce3a665be",
             "version": [
                 1,
-                8,
+                9,
                 0
             ],
             "entry": "scripts/edu_tools/main.js"
@@ -43,7 +43,7 @@
             "uuid": "c936d247-3245-51fe-b035-7bb059842feb",
             "version": [
                 1,
-                8,
+                9,
                 0
             ]
         },

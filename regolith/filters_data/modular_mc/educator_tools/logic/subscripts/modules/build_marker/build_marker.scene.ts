@@ -40,7 +40,7 @@ export class BuildMarkersScene extends ActionUIScene {
 				"textures/edu_tools/ui/main/build_markers",
 			);
 		}
-		if (markers.length) {
+		if (markers.length && service.students.isTeacher(this.player.id)) {
 			this.addButton(
 				"edu_tools.ui.build_markers.remove_all",
 				() => {
@@ -85,6 +85,7 @@ export class BuildMarkerScene extends ActionUIScene {
 				marker,
 			);
 		});
+		if (service.students.isTeacher(this.player.id)) {
 		this.addButton("edu_tools.ui.build_marker.send", () => {
 			const students = service.students.getOnlineStudents();
 			if (students.length === 0) {
@@ -110,6 +111,7 @@ export class BuildMarkerScene extends ActionUIScene {
 			},
 			"textures/edu_tools/ui/lock_player/delete_lock",
 		);
+		}
 		this.addButton(
 			"edu_tools.ui.buttons.back",
 			() => {

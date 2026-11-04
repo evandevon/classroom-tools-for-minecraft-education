@@ -123,7 +123,7 @@ export class ItemService implements Module {
 
 	private onPlayerSpawn(event: PlayerSpawnAfterEvent): void {
 		system.runTimeout(() => {
-			if (this.students?.isStaff(event.player.id)) {
+			if (this.students?.canUseToolbox(event.player.id)) {
 				this.giveEducatorTool(event.player);
 			}
 		}, 1); // Delay to ensure player is processed correctly
