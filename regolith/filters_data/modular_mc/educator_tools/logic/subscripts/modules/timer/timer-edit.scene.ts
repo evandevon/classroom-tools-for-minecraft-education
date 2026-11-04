@@ -2,7 +2,8 @@ import { RawMessage, world } from "@minecraft/server";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { ModalUIScene, RawBodyElement } from "../scene_manager/ui-scene.ts";
-import { DURATIONS } from "../students/timed-entries.ts";
+import { DEFAULT_DURATION_INDEX, DURATIONS } from "../students/timed-entries.ts";
+import { END_ACTIONS } from "./timer-end-actions.ts";
 import { Timer, TimerDuration, TimerService } from "./timer.service.ts";
 
 export class TimerEditScene extends ModalUIScene {
@@ -125,18 +126,29 @@ export class TimerEditScene extends ModalUIScene {
 
 		this.addDropdown(
 			"When time is up",
-			[
-				"Do nothing",
-				...DURATIONS.map((d) =>
-					d.minutes === null
-						? "Focus Mode for the class, until I release them"
-						: `Focus Mode for the class, ${d.label}`
-				),
-			],
+			END_ACTIONS.map((action) => action.label),
 			(index: number): void => {
-				context.setData("freeze_at_end", index);
+				context.setData("end_action", index);
 			},
-			{ defaultValueIndex: timer?.freezeAtEnd ?? 0 },
+			{ defaultValueIndex: timer?.endAction ?? 0 },
+		);
+
+		this.addDropdown(
+			"How long? (Focus Mode only)",
+			DURATIONS.map((d) => d.label),
+			(index: number): void => {
+				context.setData("end_focus_duration", index);
+			},
+			{ defaultValueIndex: timer?.endFocusDuration ?? DEFAULT_DURATION_INDEX },
+		);
+
+		this.addTextField(
+			"Message (Focus Mode or Show a message)",
+			"Time is up",
+			(value: string): void => {
+				context.setData("end_message", value.trim());
+			},
+			{ defaultValue: timer?.endMessage ?? "" },
 		);
 
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
@@ -158,7 +170,10 @@ export class TimerEditScene extends ModalUIScene {
 			duration: duration,
 			entityShown: showTimer,
 			countOffline: countOffline,
-			freezeAtEnd: context.getData("freeze_at_end") ?? 0,
+			endAction: context.getData("end_action") ?? 0,
+			endFocusDuration: context.getData("end_focus_duration") ??
+				DEFAULT_DURATION_INDEX,
+			endMessage: context.getData("end_message") ?? "",
 		};
 
 		if (this.timerService.getTimer()) {

@@ -78,7 +78,7 @@ export class TeleportRequestsService implements Module {
 		return world.getDynamicProperty(ACTIVE_KEY) === true;
 	}
 
-	private setActive(active: boolean): void {
+	setActive(active: boolean): void {
 		world.setDynamicProperty(ACTIVE_KEY, active);
 		for (const student of this.students().getOnlineStudents()) {
 			student.sendMessage(

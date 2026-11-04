@@ -82,7 +82,19 @@ Choose students, then set:
 
 Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only teachers can control it.
 
-**When time is up** can do nothing, or put the class in Focus Mode for a set time or until you release them.
+**When time is up** can do one of these:
+
+- Do nothing
+- Focus Mode for everybody, with its own time limit and optional message
+- End Focus Mode
+- Start Showcase or End Showcase
+- Unlock Everybody
+- Allow or Stop Teleport Requests
+- Place a marker for anyone without one, where they're standing at that moment
+- Show a message on everyone's screen
+- Set everybody to Adventure (no building) or Creative
+
+Teachers aren't affected. Students in Focus Mode skip game mode changes, and a running showcase keeps students in Adventure.
 
 ### Student Tools
 

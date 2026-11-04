@@ -1,7 +1,6 @@
 import { CachedStorage, PropertyStorage } from "@shapescape/storage";
-import { Module, ModuleManager } from "../../module-manager.ts";
-import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
-import { DURATIONS } from "../students/timed-entries.ts";
+import { Module } from "../../module-manager.ts";
+import { runEndAction, TimerEndChoice } from "./timer-end-actions.ts";
 import {
   Entity,
   EntityHealthComponent,
@@ -43,7 +42,12 @@ export interface Timer {
   lastRealTime?: number;
   /** If true, offline time counts down (timer continues while game is closed). If false, offline time is paused. */
   countOffline?: boolean;
-  /** 0 = do nothing; otherwise 1 + an index into DURATIONS. */
+  /** Index into END_ACTIONS. */
+  endAction?: number;
+  /** Index into DURATIONS, for Focus Mode. */
+  endFocusDuration?: number;
+  endMessage?: string;
+  /** From older versions: 1 + an index into DURATIONS. */
   freezeAtEnd?: number;
 }
 
@@ -492,18 +496,17 @@ export class TimerService implements Module {
       world.getPlayers().forEach((player) => {
         player.playSound("random.anvil_use", { volume: 0.3, pitch: 2 });
       });
-      const freezeAtEnd = timer.freezeAtEnd ?? 0;
+      // A timer saved by an older version still freezes the class.
+      const legacy = timer.endAction === undefined && (timer.freezeAtEnd ?? 0) > 0;
+      const choice: TimerEndChoice = legacy
+        ? { action: 1, focusDuration: timer.freezeAtEnd! - 1 }
+        : {
+          action: timer.endAction,
+          focusDuration: timer.endFocusDuration,
+          message: timer.endMessage,
+        };
       this.clearTimer();
-      if (freezeAtEnd > 0) {
-        const focus = ModuleManager.getInstance().getModule<FocusModeService>(
-          FocusModeService.id,
-        );
-        focus?.freeze(
-          focus.classSelection(),
-          DURATIONS[freezeAtEnd - 1].minutes,
-          { message: "Time is up" },
-        );
-      }
+      runEndAction(choice);
       return;
     }
 
