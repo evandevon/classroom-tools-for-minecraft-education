@@ -38,7 +38,7 @@ export class LockPlayerMechanic {
 		if (this.service.getEntries().isEmpty()) return;
 
 		for (const player of world.getAllPlayers()) {
-			if (this.service.students.isTeacher(player.id)) continue;
+			if (this.service.students.isStaff(player.id)) continue;
 			// One student's error must never stop the others being handled.
 			try {
 				const entry = this.service.getEntries().effective(player.id);

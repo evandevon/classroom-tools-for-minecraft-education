@@ -25,7 +25,7 @@ export class FocusModeMechanic {
 		for (const player of world.getAllPlayers()) {
 			// One student's error must never stop the others being handled.
 			try {
-				const entry = this.service.students.isTeacher(player.id)
+				const entry = this.service.students.isStaff(player.id)
 					? undefined
 					: this.service.getEntries().effective(player.id);
 				if (entry) {

@@ -29,7 +29,7 @@ export class MainScene extends ActionUIScene {
 		// Add buttons from the service registry
 		const registeredButtons = mainService.getRegisteredButtons();
 		for (const [, config] of registeredButtons) {
-			if (config.visible && !config.visible()) continue;
+			if (config.visible && !config.visible(context.getSourcePlayer())) continue;
 			this.addButton(
 				config.labelKey,
 				(): void => {

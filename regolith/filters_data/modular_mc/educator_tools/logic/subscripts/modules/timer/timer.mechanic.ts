@@ -33,7 +33,7 @@ export class TimerMechanic {
 		const students = ModuleManager.getInstance().getModule<StudentsService>(
 			StudentsService.id,
 		);
-		if (!students?.isTeacher(player.id)) return;
+		if (!students?.isStaff(player.id)) return;
 		const sceneManager = SceneManager.getInstance();
 		sceneManager.createContextAndOpenScene(player, "timer");
 	}

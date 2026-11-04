@@ -128,7 +128,7 @@ export class FocusModeService implements Module {
 	}
 
 	isFrozen(playerId: string): boolean {
-		return !this.students.isTeacher(playerId) &&
+		return !this.students.isStaff(playerId) &&
 			!!this.entries.effective(playerId);
 	}
 

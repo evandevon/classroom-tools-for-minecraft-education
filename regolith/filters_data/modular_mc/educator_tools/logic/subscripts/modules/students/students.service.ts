@@ -11,6 +11,7 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
+import { TrustedPlayersScene } from "./trusted-players.scene.ts";
 import { TimerService } from "../timer/timer.service.ts";
 import { formatTimeLeft } from "./timed-entries.ts";
 import {
@@ -20,19 +21,27 @@ import {
 
 /**
  * Knows who the teacher is. There is exactly one: the first person to open
- * the world with this pack on. An operator can take over with
+ * the world with this pack on. The teacher can also trust other players, who
+ * get every tool except managing the trusted list. An operator can take over with
  * /scriptevent edu_tools:claim_teacher (for example on a copied world).
  */
 export class StudentsService implements Module {
 	static readonly id = "students";
 	public readonly id = StudentsService.id;
 	private static readonly TEACHER_KEY = "teacher_id";
+	private static readonly TRUSTED_KEY = "trusted_players";
 
 	constructor(private readonly moduleManager: ModuleManager) {}
 
 	initialize(): void {
 		world.afterEvents.playerSpawn.subscribe((event) => {
 			if (!this.getTeacherId()) this.setTeacher(event.player);
+			// Someone removed while offline shouldn't keep a toolbox.
+			system.runTimeout(() => {
+				if (!this.isStaff(event.player.id)) {
+					this.items()?.removeEducatorTool(event.player);
+				}
+			}, 2);
 		});
 		system.afterEvents.scriptEventReceive.subscribe(
 			(event: ScriptEventCommandMessageAfterEvent) => {
@@ -42,8 +51,8 @@ export class StudentsService implements Module {
 				) {
 					const player = event.sourceEntity as Player;
 					this.setTeacher(player);
-					this.moduleManager.getModule<ItemService>(ItemService.id)
-						?.giveEducatorTool(player);
+					this.removeTrusted(player.id);
+					this.items()?.giveEducatorTool(player);
 					player.sendMessage("§aYou are now the teacher in this world.");
 				}
 			},
@@ -52,6 +61,12 @@ export class StudentsService implements Module {
 	}
 
 	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			TrustedPlayersScene.id,
+			(manager: SceneManager, context: SceneContext) => {
+				new TrustedPlayersScene(manager, context, this);
+			},
+		);
 		sceneManager.registerScene(
 			PlayerSelectScene.id,
 			(
@@ -66,6 +81,22 @@ export class StudentsService implements Module {
 
 	getExtraMainButtons(): [string, ButtonConfig][] {
 		return [
+			[
+				"trusted_players",
+				{
+					labelKey: "edu_tools.ui.main.buttons.trusted_players",
+					iconPath: "textures/edu_tools/ui/main/trusted_players",
+					handler: (sceneManager: SceneManager, context: SceneContext) => {
+						sceneManager.openSceneWithContext(
+							context,
+							TrustedPlayersScene.id,
+							true,
+						);
+					},
+					weight: 80,
+					visible: (player) => this.isTeacher(player.id),
+				},
+			],
 			[
 				"end_focus",
 				{
@@ -99,6 +130,71 @@ export class StudentsService implements Module {
 		];
 	}
 
+	private items(): ItemService | undefined {
+		return this.moduleManager.getModule<ItemService>(ItemService.id);
+	}
+
+	/** Trusted players, by ID. Names are kept so offline players can be listed. */
+	getTrusted(): Record<string, string> {
+		const raw = world.getDynamicProperty(StudentsService.TRUSTED_KEY);
+		if (typeof raw !== "string") return {};
+		try {
+			return JSON.parse(raw);
+		} catch (e) {
+			console.warn(`Could not read trusted players: ${e}`);
+			return {};
+		}
+	}
+
+	private saveTrusted(trusted: Record<string, string>): void {
+		world.setDynamicProperty(
+			StudentsService.TRUSTED_KEY,
+			JSON.stringify(trusted),
+		);
+	}
+
+	isTrusted(playerId: string): boolean {
+		return playerId in this.getTrusted();
+	}
+
+	/** The teacher or a trusted player. */
+	isStaff(playerId: string): boolean {
+		return this.isTeacher(playerId) || this.isTrusted(playerId);
+	}
+
+	addTrusted(players: { id: string; name: string }[]): void {
+		const trusted = this.getTrusted();
+		for (const { id, name } of players) {
+			if (this.isTeacher(id)) continue;
+			trusted[id] = name;
+			const player = world.getEntity(id) as Player | undefined;
+			if (player) {
+				this.items()?.giveEducatorTool(player);
+				player.sendMessage("§aYou are now a trusted player. Use the Classroom Toolbox.");
+			}
+		}
+		this.saveTrusted(trusted);
+	}
+
+	removeTrusted(playerId: string): void {
+		const trusted = this.getTrusted();
+		if (!(playerId in trusted)) return;
+		delete trusted[playerId];
+		this.saveTrusted(trusted);
+		const player = world.getEntity(playerId) as Player | undefined;
+		if (player && !this.isTeacher(playerId)) {
+			this.items()?.removeEducatorTool(player);
+			player.sendMessage("§eYou are no longer a trusted player.");
+		}
+	}
+
+	/** Everyone online except this player, including staff. */
+	getOtherPlayers(playerId: string): Player[] {
+		return world.getAllPlayers()
+			.filter((p) => p.id !== playerId)
+			.sort((a, b) => a.name.localeCompare(b.name));
+	}
+
 	getTeacherId(): string | undefined {
 		const id = world.getDynamicProperty(StudentsService.TEACHER_KEY);
 		return typeof id === "string" ? id : undefined;
@@ -116,19 +212,20 @@ export class StudentsService implements Module {
 		return world.getAllPlayers().find((p) => this.isTeacher(p.id));
 	}
 
-	/** Online players other than the teacher, A to Z. */
+	/** Online players other than the teacher and trusted players, A to Z. */
 	getOnlineStudents(): Player[] {
 		return world.getAllPlayers()
-			.filter((p) => !this.isTeacher(p.id))
+			.filter((p) => !this.isStaff(p.id))
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	/** Tells the teacher when something ends by itself. */
+	/** Tells the teacher and trusted players when something ends by itself. */
 	notifyTeacher(message: string): void {
-		const teacher = this.getTeacher();
-		if (!teacher) return;
-		teacher.sendMessage(message);
-		teacher.playSound("random.orb");
+		for (const player of world.getAllPlayers()) {
+			if (!this.isStaff(player.id)) continue;
+			player.sendMessage(message);
+			player.playSound("random.orb");
+		}
 	}
 
 	private focus(): FocusModeService | undefined {
@@ -148,7 +245,7 @@ export class StudentsService implements Module {
 		const students = this.getOnlineStudents();
 		for (const player of world.getAllPlayers()) {
 			const parts = timer ? [timer] : [];
-			if (this.isTeacher(player.id)) {
+			if (this.isStaff(player.id)) {
 				const frozen =
 					students.filter((s) => this.focus()?.isFrozen(s.id)).length;
 				const locked =

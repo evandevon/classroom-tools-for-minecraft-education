@@ -136,6 +136,14 @@ export class ShowcaseService implements Module {
 	/** Also catches students who join, return, or leave Focus Mode part way. */
 	private tick(): void {
 		const active = this.isActive();
+		// Someone made a trusted player during a showcase gets their mode back.
+		for (const player of world.getAllPlayers()) {
+			const saved = player.getDynamicProperty(SAVED_MODE);
+			if (this.students.isStaff(player.id) && typeof saved === "string") {
+				player.setGameMode(saved as GameMode);
+				player.setDynamicProperty(SAVED_MODE, undefined);
+			}
+		}
 		const focus = this.moduleManager.getModule<FocusModeService>(
 			FocusModeService.id,
 		);

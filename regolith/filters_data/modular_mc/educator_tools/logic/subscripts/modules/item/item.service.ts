@@ -81,6 +81,17 @@ export class ItemService implements Module {
 		}
 	}
 
+	public removeEducatorTool(player: Player): void {
+		const inventory = (player.getComponent(
+			"inventory",
+		) as EntityInventoryComponent).container as Container;
+		for (let i = 0; i < inventory.size; i++) {
+			if (inventory.getItem(i)?.typeId === "edu_tools:educator_tool") {
+				inventory.setItem(i, undefined);
+			}
+		}
+	}
+
 	public giveEducatorTool(player: Player): void {
 		// give them the Educator Tool if they do not have it yet
 		const inventoryComponent = player.getComponent(
@@ -112,7 +123,7 @@ export class ItemService implements Module {
 
 	private onPlayerSpawn(event: PlayerSpawnAfterEvent): void {
 		system.runTimeout(() => {
-			if (this.students?.isTeacher(event.player.id)) {
+			if (this.students?.isStaff(event.player.id)) {
 				this.giveEducatorTool(event.player);
 			}
 		}, 1); // Delay to ensure player is processed correctly

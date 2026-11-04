@@ -164,7 +164,7 @@ class TeleportSelfScene extends ActionUIScene {
 		super(TeleportSelfScene.id, context.getSourcePlayer());
 		this.setContext(context);
 		this.setSimpleBody("edu_tools.ui.teleport_self.body");
-		for (const student of service.students().getOnlineStudents()) {
+		for (const student of service.students().getOtherPlayers(this.player.id)) {
 			this.addButton(student.name, () => {
 				this.player.teleport(student.location, {
 					dimension: student.dimension,
@@ -248,7 +248,7 @@ class TeleportScene extends ActionUIScene {
 			);
 		};
 		this.addButton("Me", () => go(this.player));
-		for (const student of service.students().getOnlineStudents()) {
+		for (const student of service.students().getOtherPlayers(this.player.id)) {
 			this.addButton(student.name, () => go(student));
 		}
 		for (const { marker } of service.markers()) {

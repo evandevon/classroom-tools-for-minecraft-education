@@ -1,3 +1,4 @@
+import { Player } from "@minecraft/server";
 import { Module, ModuleManager } from "../../module-manager.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { MainScene } from "./main.scene.ts";
@@ -13,7 +14,7 @@ export interface ButtonConfig {
   iconPath: string;
   handler: (sceneManager: SceneManager, context: SceneContext) => void;
   weight?: number; // Optional weight for sorting buttons
-  visible?: () => boolean; // Hide the button when it would do nothing
+  visible?: (player: Player) => boolean; // Hide the button when it would do nothing
 }
 
 /**
@@ -44,7 +45,7 @@ export class MainService implements Module {
     this.itemService?.registerScene("main", {
       priority: -10000,
       condition_callback: (player) => {
-        if (this.students?.isTeacher(player.id)) {
+        if (this.students?.isStaff(player.id)) {
           return true;
         } else {
           // Send a message to the player that they are not allowed to use the educator tool

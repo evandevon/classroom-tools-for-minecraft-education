@@ -5,7 +5,7 @@ import { Selection } from "./timed-entries.ts";
 
 export interface PlayerSelectOptions {
 	players: { id: string; name: string; status?: string }[];
-	everybodyLabel: string;
+	everybodyLabel?: string; // Leave out to offer named players only
 	onSelected: (selection: Selection) => void;
 }
 
@@ -23,9 +23,11 @@ export class PlayerSelectScene extends ModalUIScene {
 
 		let everybody = false;
 		const chosen: { id: string; name: string }[] = [];
-		this.addToggle(options.everybodyLabel, (v) => {
-			everybody = v;
-		});
+		if (options.everybodyLabel) {
+			this.addToggle(options.everybodyLabel, (v) => {
+				everybody = v;
+			});
+		}
 		for (const p of options.players) {
 			const label = p.status ? `${p.name} §7(${p.status})§r` : p.name;
 			this.addToggle(label, (v) => {

@@ -43,7 +43,7 @@ To update, install the new file and check that the world lists the new version. 
 
 You get an **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
-Only the teacher can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes you, and for Warnings, Teleport and Gamemode it covers only students who are online.
+Only the teacher and trusted players can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes you or trusted players, and for Warnings, Teleport and Gamemode it covers only students who are online.
 
 ## Features
 
@@ -80,7 +80,7 @@ Choose students, then set:
 
 ### Timer
 
-Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only you can control it.
+Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only you and trusted players can control it.
 
 **When time is up** can do nothing, or put the class in Focus Mode for a set time or until you release them.
 
@@ -121,6 +121,15 @@ Change game mode for selected students or Everybody. Students in Focus Mode are 
 ### Weather and Time
 
 Change the weather and time of day for the world.
+
+### Trusted Players
+
+Give another teacher, or another person you trust, nearly the same authority as you. Only the teacher sees this option.
+
+- **Add Trusted Players:** Tick people who are online. They get a Classroom Toolbox straight away.
+- **Remove Trusted Players:** Removes the role and the toolbox, even if they're offline.
+
+Trusted players can use every other tool, including the Behaviour Log and its Clear Log option, but they can't change who is trusted. Warnings, Focus Mode, locks and showcases don't affect them, and the log doesn't record which staff member took an action. Only trust people you'd trust with those tools.
 
 ### Behaviour Log
 

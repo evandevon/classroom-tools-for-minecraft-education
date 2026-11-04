@@ -130,7 +130,7 @@ export class LockPlayerService implements Module {
 	}
 
 	isLocked(playerId: string): boolean {
-		return !this.students.isTeacher(playerId) &&
+		return !this.students.isStaff(playerId) &&
 			!!this.entries.effective(playerId);
 	}
 
@@ -143,10 +143,13 @@ export class LockPlayerService implements Module {
 			return { center: data.point, dimensionId: data.dimensionId };
 		}
 		if (data.centre === "follow") {
-			const teacher = this.students.getTeacher();
-			return teacher
-				? { center: teacher.location, dimensionId: teacher.dimension.id }
-				: undefined; // Teacher offline: the area can't follow anyone.
+			// Follows whoever set the lock. If they're offline, it can't follow anyone.
+			const leader = data.followId
+				? world.getEntity(data.followId) as Player | undefined
+				: undefined;
+			return leader
+				? { center: leader.location, dimensionId: leader.dimension.id }
+				: undefined;
 		}
 		let own = this.ownCentres[player.id];
 		if (!own) {
