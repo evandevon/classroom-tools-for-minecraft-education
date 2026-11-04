@@ -56,7 +56,6 @@ export class StudentsService implements Module {
 					this.setTeacher(player);
 					this.removeTeacher(player.id);
 					this.removeHelper(player.id);
-					this.help()?.syncItems(player);
 					this.items()?.giveEducatorTool(player);
 					player.sendMessage("§aYou are now the teacher in this world.");
 				}
@@ -186,7 +185,6 @@ export class StudentsService implements Module {
 			const player = world.getEntity(id) as Player | undefined;
 			if (player) {
 				this.items()?.giveEducatorTool(player);
-				this.help()?.syncItems(player);
 				player.sendMessage("§aYou are now a teacher in this world.");
 			}
 		}
@@ -210,9 +208,8 @@ export class StudentsService implements Module {
 		for (const { id } of players) {
 			const player = world.getEntity(id) as Player | undefined;
 			if (player) {
-				this.help()?.syncItems(player);
 				player.sendMessage(
-					"§aYou are now a helper. You'll hear a sound when someone needs help. Use your Helper Badge to go to them.",
+					"§aYou are now a helper. You'll hear a sound when someone needs help. Open Help Requests in Student Tools to go to them.",
 				);
 			}
 		}
@@ -225,7 +222,6 @@ export class StudentsService implements Module {
 		this.saveList(StudentsService.HELPERS_KEY, helpers);
 		const player = world.getEntity(playerId) as Player | undefined;
 		if (player) {
-			this.help()?.syncItems(player);
 			player.sendMessage("§eYou are no longer a helper.");
 		}
 	}
@@ -238,7 +234,6 @@ export class StudentsService implements Module {
 		const player = world.getEntity(playerId) as Player | undefined;
 		if (player && !this.canUseToolbox(playerId)) {
 			this.items()?.removeEducatorTool(player);
-			this.help()?.syncItems(player);
 			player.sendMessage(message);
 		}
 	}

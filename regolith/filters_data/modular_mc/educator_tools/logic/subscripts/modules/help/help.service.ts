@@ -3,7 +3,6 @@ import { Module, ModuleManager } from "../../module-manager.ts";
 import { BehaviourLogService } from "../behaviour_log/behaviour_log.service.ts";
 import { BuildMarkerService } from "../build_marker/build_marker.service.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
-import { ItemService } from "../item/item.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
@@ -12,8 +11,6 @@ import { ActionUIScene } from "../scene_manager/ui-scene.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { formatTimeLeft } from "../students/timed-entries.ts";
 
-export const HELP_FLAG_ITEM = "edu_tools:help_flag";
-export const HELPER_ITEM = "edu_tools:helper_badge";
 const FLAG_ENTITY = "edu_tools:help_flag";
 const STAMP_PROPERTY = "help_stamp";
 const KEY = "help_requests";
@@ -56,16 +53,6 @@ export class HelpService implements Module {
 				console.warn(`Could not read help requests: ${e}`);
 			}
 		}
-		world.afterEvents.playerSpawn.subscribe((event) => {
-			system.runTimeout(() => this.syncItems(event.player), 2);
-		});
-		world.afterEvents.itemUse.subscribe((event) => {
-			if (event.itemStack.typeId === HELP_FLAG_ITEM) {
-				this.onFlagUsed(event.source);
-			} else if (event.itemStack.typeId === HELPER_ITEM) {
-				this.onBadgeUsed(event.source);
-			}
-		});
 		system.runInterval(() => this.tick(), 20);
 	}
 
@@ -118,36 +105,13 @@ export class HelpService implements Module {
 		return this.requests.find((r) => r.helperId === playerId);
 	}
 
-	/** Gives or takes the Help Flag and Helper Badge to match someone's role. */
-	syncItems(player: Player): void {
-		const items = this.moduleManager.getModule<ItemService>(ItemService.id);
-		if (!items) return;
-		try {
-			if (this.students().isTeacher(player.id)) {
-				// The main teacher keeps a flag for demonstrating to the class.
-				if (this.students().getTeacherId() === player.id) {
-					items.giveItem(player, HELP_FLAG_ITEM);
-				} else {
-					items.removeItem(player, HELP_FLAG_ITEM);
-				}
-				items.removeItem(player, HELPER_ITEM);
-				return;
-			}
-			items.giveItem(player, HELP_FLAG_ITEM);
-			if (this.students().isHelper(player.id)) {
-				items.giveItem(player, HELPER_ITEM);
-			} else {
-				items.removeItem(player, HELPER_ITEM);
-			}
-		} catch (e) {
-			console.warn(`Could not update items for ${player.name}: ${e}`);
-		}
+	hasFlag(playerId: string): boolean {
+		return this.requests.some((r) => r.id === playerId);
 	}
 
-	private onFlagUsed(player: Player): void {
-		const isOtherTeacher = this.students().isTeacher(player.id) &&
-			this.students().getTeacherId() !== player.id;
-		if (isOtherTeacher || this.isFrozen(player.id)) return;
+	/** Puts the player's help flag up, or takes it down. */
+	toggleFlag(player: Player): void {
+		if (this.isFrozen(player.id)) return;
 		const existing = this.requests.find((r) => r.id === player.id);
 		if (existing) {
 			this.cancel(existing);
@@ -186,7 +150,7 @@ export class HelpService implements Module {
 		const told = this.ping(`§e${player.name} needs help.`, player.id);
 		player.sendMessage(
 			told
-				? "§aYour help flag is up. Use it again to take it down."
+				? "§aYour help flag is up. Choose Take Down My Help Flag when you're done."
 				: "§eYour flag is up, but no helpers or teachers are online.",
 		);
 		player.playSound("random.orb");
@@ -200,20 +164,12 @@ export class HelpService implements Module {
 			const isHelper = this.students().isHelper(player.id);
 			if (!isHelper && !this.students().isTeacher(player.id)) continue;
 			player.sendMessage(
-				isHelper ? `${message} Use your Helper Badge.` : message,
+				`${message} Open Help Requests in Student Tools.`,
 			);
 			player.playSound("note.pling");
 			told++;
 		}
 		return told;
-	}
-
-	private onBadgeUsed(player: Player): void {
-		if (!this.students().isHelper(player.id) || this.isFrozen(player.id)) return;
-		SceneManager.getInstance().createContextAndOpenScene(
-			player,
-			HelpRequestsScene.id,
-		);
 	}
 
 	/** Teleports a helper or teacher to the student who asked. */
@@ -257,17 +213,8 @@ export class HelpService implements Module {
 		const request = this.getRequestBeingHelpedBy(player.id);
 		if (request) this.cancel(request, false);
 		if (!returnToBuild) return;
-		const markers = this.moduleManager.getModule<BuildMarkerService>(
-			BuildMarkerService.id,
-		);
-		const marker = markers?.getMarker(player.id);
-		if (!marker) {
-			player.sendMessage("§eYou don't have a marker to return to.");
-			return;
-		}
-		player.teleport(marker.location, {
-			dimension: world.getDimension(marker.dimensionId),
-		});
+		this.moduleManager.getModule<BuildMarkerService>(BuildMarkerService.id)
+			?.returnToBuild(player);
 	}
 
 	private cancel(request: HelpRequest, tellHelper = true): void {
@@ -357,6 +304,12 @@ class HelpRequestsScene extends ActionUIScene {
 	) {
 		super(HelpRequestsScene.id, context.getSourcePlayer());
 		this.setContext(context);
+		// Roles can change while a menu is open.
+		const students = service.students();
+		if (!students.isHelper(this.player.id) && !students.isTeacher(this.player.id)) {
+			this.player.sendMessage("§eYou aren't a helper right now.");
+			return;
+		}
 		const current = service.getRequestBeingHelpedBy(this.player.id);
 		const isTeacher = service.students().isTeacher(this.player.id);
 

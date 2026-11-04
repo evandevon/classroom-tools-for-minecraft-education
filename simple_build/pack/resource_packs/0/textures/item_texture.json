@@ -7,12 +7,6 @@
     },
     "edu_tools_build_marker": {
       "textures": "textures/edu_tools/items/build_marker"
-    },
-    "edu_tools_help_flag": {
-      "textures": "textures/edu_tools/items/help_flag"
-    },
-    "edu_tools_helper_badge": {
-      "textures": "textures/edu_tools/items/helper_badge"
     }
   }
 }

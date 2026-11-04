@@ -7,8 +7,8 @@
         "pack_scope": "world",
         "version": [
             1,
-            10,
-            1
+            11,
+            0
         ],
         "min_engine_version": [
             1,
@@ -32,8 +32,8 @@
             "uuid": "9a40af2c-14df-5baa-9980-4f46d749f5fa",
             "version": [
                 1,
-                10,
-                1
+                11,
+                0
             ]
         }
     ],

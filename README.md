@@ -84,9 +84,21 @@ Create, start, pause, edit or remove a countdown. Everybody sees it above their 
 
 **When time is up** can do nothing, or put the class in Focus Mode for a set time or until you release them.
 
+### Student Tools
+
+Everybody, including teachers, gets one **Student Tools** item. Using it opens a menu, so teachers can show the class exactly what students see.
+
+- **I Need Help** or **Take Down My Help Flag**
+- **Place or Move My Marker** (or **Visit a Build** during a showcase)
+- **Return to My Build**
+- **Ask to Visit Someone**, when teleport requests are on
+- **Help Requests**, for helpers and teachers
+
+It can't be opened in Focus Mode, and locked students can't use it to leave their area.
+
 ### Build Markers
 
-Everybody gets a **Build Marker**, a red flag item. Using it places a flag labelled with their name, and using it again moves it, so each person has one.
+**Place or Move My Marker** places a flag labelled with the person's name. Choosing it again moves the flag, so each person has one.
 
 In your **Build Markers** menu, you can:
 
@@ -102,7 +114,7 @@ While a showcase runs:
 
 - Students switch to Adventure mode, so they can't place or break blocks. You stay in your current mode.
 - Fighting, fall damage and TNT explosions are turned off.
-- Using the Build Marker opens a list of builds to teleport to, for you and students. Flags can't be placed or moved.
+- **Student Tools** offers **Visit a Build**, a list of builds to teleport to, for you and students. Flags can't be placed or moved.
 
 **End Showcase** restores each student's game mode and the world rules.
 
@@ -127,18 +139,18 @@ Change the weather and time of day for the world.
 Any teacher can open this menu.
 
 - **Assign as Teacher:** Gives someone full control, including this menu. The person who first opened the world can't be removed here.
-- **Add Helpers:** Gives students a **Helper Badge**. Helpers are still students, so class-wide tools apply to them, and they can't open the toolbox.
+- **Add Helpers:** Adds **Help Requests** to a student's Student Tools. Helpers are still students, so class-wide tools apply to them, and they can't open the toolbox.
 
-Removing either role also takes the matching item, including from someone who's offline when they return.
+Removing the teacher role also takes the toolbox, including from someone who's offline when they return.
 
 ### Help Flags
 
-Every student gets a **Help Flag** item. The main teacher gets one too, for demonstrating how it works to the class.
-
-1. A student uses it, and a flag saying "Ann needs help" appears. Using it again takes it down.
+1. Someone chooses **I Need Help** in Student Tools, and a flag saying "Ann needs help" appears. **Take Down My Help Flag** removes it.
 2. Helpers and teachers hear a sound and get a chat message, and see the number waiting on screen.
-3. A helper uses their **Helper Badge**, or a teacher opens **Help Requests**, then chooses a student to teleport to them. The longest wait is listed first.
+3. A helper or teacher opens **Help Requests**, in Student Tools or the teacher menu, then chooses a student to teleport to them. The longest wait is listed first.
 4. When finished, they choose **Finished: Return to My Build** or **Finished: Stay Here**.
+
+Teachers can use I Need Help to demonstrate it to the class.
 
 Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged, and locked helpers can't go. Help visits are added to the Behaviour Log.
 
@@ -148,11 +160,7 @@ Helpers can only teleport to students with a help flag up. Teach them to explain
 
 **Allow Teleport Requests** turns this on for students, and **Stop Teleport Requests** turns it off.
 
-While it's on, a student's Build Marker opens a menu:
-
-- **Place or Move My Marker**
-- **Ask to Visit Someone:** Choose another student's character or build. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
-- **Return to My Build**
+While it's on, **Student Tools** includes **Ask to Visit Someone**. Choose another student's character or build. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
 
 Students can ask once every 20 seconds. Students in Focus Mode or locked to an area can't visit, and teachers can't be requested. Approved visits are added to the Behaviour Log.
 
@@ -181,7 +189,7 @@ The copy still treats the original account as the teacher. To take over, another
 | Problem | What to try |
 |---|---|
 | The toolbox won't open | Check you opened the world first, or use the command above |
-| No toolbox or Build Marker | Leave and rejoin the world |
+| No toolbox or Student Tools | Leave and rejoin the world |
 | Icons or the flag are missing | Check the pack is active under Resource Packs |
 | The old version is still running | Remove it from the world, activate the new one, and have students rejoin |
 | A flag lingers after it's moved | It should disappear within a few seconds once someone is near it |

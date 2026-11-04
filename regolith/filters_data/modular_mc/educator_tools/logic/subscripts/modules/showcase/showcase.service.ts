@@ -96,7 +96,7 @@ export class ShowcaseService implements Module {
 			this.announce(
 				student,
 				"§aShowcase!",
-				"Use your Build Marker to visit builds",
+				"Open Student Tools to visit builds",
 			);
 		}
 	}

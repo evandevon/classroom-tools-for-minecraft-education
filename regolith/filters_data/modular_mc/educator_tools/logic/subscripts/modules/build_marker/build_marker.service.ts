@@ -12,8 +12,8 @@ import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { ShowcaseService } from "../showcase/showcase.service.ts";
-import { TeleportRequestsService } from "../teleport_requests/teleport_requests.service.ts";
+import { LockPlayerService } from "../lock_player/lock_player.service.ts";
+import { StudentMenuScene } from "../student_menu/student-menu.scene.ts";
 import { StudentsService } from "../students/students.service.ts";
 import { Selection } from "../students/timed-entries.ts";
 import { BuildMarkerScene, BuildMarkersScene } from "./build_marker.scene.ts";
@@ -34,7 +34,7 @@ const ENTITY_ID = "edu_tools:build_marker";
 const STAMP_PROPERTY = "marker_stamp";
 const DIMENSIONS = ["overworld", "nether", "the_end"];
 
-/** Everyone can place one marker; the teacher can go there or send students. */
+/** Everyone has one marker, placed from the Student Tools item. */
 export class BuildMarkerService implements Module {
 	static readonly id = "build_marker";
 	public readonly id = BuildMarkerService.id;
@@ -67,6 +67,12 @@ export class BuildMarkerService implements Module {
 	}
 
 	registerScenes(sceneManager: SceneManager): void {
+		sceneManager.registerScene(
+			StudentMenuScene.id,
+			(manager: SceneManager, context: SceneContext) => {
+				new StudentMenuScene(manager, context, this);
+			},
+		);
 		sceneManager.registerScene(
 			BuildMarkersScene.id,
 			(manager: SceneManager, context: SceneContext) => {
@@ -125,24 +131,28 @@ export class BuildMarkerService implements Module {
 			FocusModeService.id,
 		);
 		if (focus?.isFrozen(player.id)) return;
-		const showcase = this.moduleManager.getModule<ShowcaseService>(
-			ShowcaseService.id,
+		SceneManager.getInstance().createContextAndOpenScene(
+			player,
+			StudentMenuScene.id,
 		);
-		if (showcase?.isActive()) {
-			SceneManager.getInstance().createContextAndOpenScene(
-				player,
-				"showcase_builds",
-			);
+	}
+
+	returnToBuild(player: Player): void {
+		const marker = this.markers[player.id];
+		if (!marker) {
+			player.sendMessage("§ePlace your marker first.");
 			return;
 		}
-		const requests = this.moduleManager.getModule<TeleportRequestsService>(
-			TeleportRequestsService.id,
-		);
-		if (requests?.isActive() && !this.students.isTeacher(player.id)) {
-			SceneManager.getInstance().createContextAndOpenScene(player, "marker_menu");
+		if (
+			this.moduleManager.getModule<LockPlayerService>(LockPlayerService.id)
+				?.isLocked(player.id)
+		) {
+			player.sendMessage("§eYou're locked to an area, so you can't go there.");
 			return;
 		}
-		this.placeForPlayer(player);
+		player.teleport(marker.location, {
+			dimension: world.getDimension(marker.dimensionId),
+		});
 	}
 
 	placeForPlayer(player: Player): void {

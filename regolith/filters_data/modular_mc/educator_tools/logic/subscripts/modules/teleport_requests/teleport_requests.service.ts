@@ -32,12 +32,6 @@ export class TeleportRequestsService implements Module {
 
 	registerScenes(sceneManager: SceneManager): void {
 		sceneManager.registerScene(
-			MarkerMenuScene.id,
-			(manager: SceneManager, context: SceneContext) => {
-				new MarkerMenuScene(manager, context, this);
-			},
-		);
-		sceneManager.registerScene(
 			VisitListScene.id,
 			(manager: SceneManager, context: SceneContext) => {
 				new VisitListScene(manager, context, this);
@@ -89,7 +83,7 @@ export class TeleportRequestsService implements Module {
 		for (const student of this.students().getOnlineStudents()) {
 			student.sendMessage(
 				active
-					? "§aYou can now ask to visit others. Use your Build Marker."
+					? "§aYou can now ask to visit others. Open Student Tools."
 					: "§eTeleport requests have been turned off.",
 			);
 		}
@@ -220,42 +214,6 @@ export class TeleportRequestsService implements Module {
 	}
 }
 
-/** What a student's Build Marker opens while requests are on. */
-class MarkerMenuScene extends ActionUIScene {
-	static readonly id = "marker_menu";
-
-	constructor(
-		sceneManager: SceneManager,
-		context: SceneContext,
-		service: TeleportRequestsService,
-	) {
-		super(MarkerMenuScene.id, context.getSourcePlayer());
-		this.setContext(context);
-		this.setSimpleBody("edu_tools.ui.marker_menu.body");
-		this.addButton("edu_tools.ui.marker_menu.place", () => {
-			service.markers().placeForPlayer(this.player);
-		});
-		this.addButton("edu_tools.ui.marker_menu.visit", () => {
-			sceneManager.openSceneWithContext(context, VisitListScene.id, true);
-		});
-		this.addButton("edu_tools.ui.marker_menu.return", () => {
-			const marker = service.markers().getMarker(this.player.id);
-			if (!marker) {
-				this.player.sendMessage("§ePlace your marker first.");
-				return;
-			}
-			service.markers().teleportSelection(
-				{
-					everybody: false,
-					players: [{ id: this.player.id, name: this.player.name }],
-				},
-				marker,
-			);
-		});
-		this.show(context.getSourcePlayer(), sceneManager);
-	}
-}
-
 class VisitListScene extends ActionUIScene {
 	static readonly id = "visit_list";
 
@@ -282,7 +240,7 @@ class VisitListScene extends ActionUIScene {
 		this.addButton(
 			"edu_tools.ui.buttons.back",
 			() => {
-				sceneManager.goBackToScene(context, MarkerMenuScene.id);
+				sceneManager.goBackToScene(context, "student_menu");
 			},
 			"textures/edu_tools/ui/_general/back",
 		);
