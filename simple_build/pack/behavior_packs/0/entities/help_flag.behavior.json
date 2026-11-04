@@ -1,0 +1,38 @@
+{
+ "format_version": "1.20.80",
+ "minecraft:entity": {
+  "description": {
+   "identifier": "edu_tools:help_flag",
+   "is_spawnable": false,
+   "is_summonable": true
+  },
+  "components": {
+   "minecraft:persistent": {},
+   "minecraft:physics": {
+    "has_collision": false,
+    "has_gravity": false
+   },
+   "minecraft:collision_box": {
+    "height": 1,
+    "width": 0.6
+   },
+   "minecraft:nameable": {
+    "allow_name_tag_renaming": false,
+    "always_show": true
+   },
+   "minecraft:health": {
+    "value": 100,
+    "max": 100
+   },
+   "minecraft:damage_sensor": {
+    "triggers": [
+     {
+      "cause": "all",
+      "deals_damage": false
+     }
+    ]
+   },
+   "minecraft:fire_immune": {}
+  }
+ }
+}

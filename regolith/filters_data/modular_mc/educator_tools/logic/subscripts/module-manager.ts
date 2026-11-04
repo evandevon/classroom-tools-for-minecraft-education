@@ -9,6 +9,7 @@ import { WarningService } from "./modules/warning/warning.service.ts";
 import { BehaviourLogService } from "./modules/behaviour_log/behaviour_log.service.ts";
 import { ShowcaseService } from "./modules/showcase/showcase.service.ts";
 import { TeleportRequestsService } from "./modules/teleport_requests/teleport_requests.service.ts";
+import { HelpService } from "./modules/help/help.service.ts";
 import { GamemodeService } from "./modules/gamemode/gamemode.service.ts";
 import { TeleportService } from "./modules/teleport/teleport.service.ts";
 import { ScenesService } from "./modules/scenes/scenes.service.ts";
@@ -82,6 +83,7 @@ export class ModuleManager {
 		this.registerModule(new TimerService());
 		this.registerModule(new BuildMarkerService(this));
 		this.registerModule(new ShowcaseService(this));
+		this.registerModule(new HelpService(this));
 		this.registerModule(new TeleportRequestsService(this));
 		this.registerModule(new TeleportService(this));
 		this.registerModule(new GamemodeService(this));

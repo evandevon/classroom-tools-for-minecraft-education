@@ -50,17 +50,9 @@ export class TeleportService implements Module {
 			labelKey: "edu_tools.ui.main.buttons.teleport",
 			iconPath: "textures/edu_tools/ui/main/teleport",
 			handler: (sceneManager: SceneManager, context: SceneContext) => {
-				// Trusted students can only move themselves.
-				sceneManager.openSceneWithContext(
-					context,
-					this.students().isTeacher(context.getSourcePlayer().id)
-						? TeleportMenuScene.id
-						: TeleportSelfScene.id,
-					true,
-				);
+				sceneManager.openSceneWithContext(context, TeleportMenuScene.id, true);
 			},
 			weight: 50,
-			trustedStudents: true,
 		};
 	}
 
@@ -190,23 +182,17 @@ class TeleportSelfScene extends ActionUIScene {
 				"textures/edu_tools/ui/main/build_markers",
 			);
 		}
-		const isTeacher = service.students().isTeacher(this.player.id);
-		if (isTeacher) {
-			this.addButton("edu_tools.ui.teleport_self.coordinates", () => {
-				sceneManager.openSceneWithContext(
-					context,
-					TeleportCoordinatesScene.id,
-					true,
-				);
-			});
-		}
+		this.addButton("edu_tools.ui.teleport_self.coordinates", () => {
+			sceneManager.openSceneWithContext(
+				context,
+				TeleportCoordinatesScene.id,
+				true,
+			);
+		});
 		this.addButton(
 			"edu_tools.ui.buttons.back",
 			() => {
-				sceneManager.goBackToScene(
-					context,
-					isTeacher ? TeleportMenuScene.id : "main",
-				);
+				sceneManager.goBackToScene(context, TeleportMenuScene.id);
 			},
 			"textures/edu_tools/ui/_general/back",
 		);

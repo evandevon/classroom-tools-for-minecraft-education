@@ -81,6 +81,30 @@ export class ItemService implements Module {
 		}
 	}
 
+	/** Gives one locked copy of an item, unless they already have it. */
+	public giveItem(player: Player, typeId: string): void {
+		const inventory = (player.getComponent(
+			"inventory",
+		) as EntityInventoryComponent).container as Container;
+		for (let i = 0; i < inventory.size; i++) {
+			if (inventory.getItem(i)?.typeId === typeId) return;
+		}
+		const item = new ItemStack(typeId, 1);
+		item.lockMode = ItemLockMode.inventory;
+		inventory.addItem(item);
+	}
+
+	public removeItem(player: Player, typeId: string): void {
+		const inventory = (player.getComponent(
+			"inventory",
+		) as EntityInventoryComponent).container as Container;
+		for (let i = 0; i < inventory.size; i++) {
+			if (inventory.getItem(i)?.typeId === typeId) {
+				inventory.setItem(i, undefined);
+			}
+		}
+	}
+
 	public removeEducatorTool(player: Player): void {
 		const inventory = (player.getComponent(
 			"inventory",

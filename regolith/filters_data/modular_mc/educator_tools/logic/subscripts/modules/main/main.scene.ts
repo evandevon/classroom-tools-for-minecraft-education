@@ -29,9 +29,7 @@ export class MainScene extends ActionUIScene {
 		// Add buttons from the service registry
 		const registeredButtons = mainService.getRegisteredButtons();
 		for (const [, config] of registeredButtons) {
-			const player = context.getSourcePlayer();
-			if (!mainService.isTeacher(player.id) && !config.trustedStudents) continue;
-			if (config.visible && !config.visible(player)) continue;
+			if (config.visible && !config.visible(context.getSourcePlayer())) continue;
 			this.addButton(
 				config.labelKey,
 				(): void => {

@@ -1,7 +1,10 @@
 [
  "textures/edu_tools/entity/build_marker",
+ "textures/edu_tools/entity/help_flag",
  "textures/edu_tools/items/build_marker",
  "textures/edu_tools/items/educator_tool",
+ "textures/edu_tools/items/help_flag",
+ "textures/edu_tools/items/helper_badge",
  "textures/edu_tools/ui/_general/back",
  "textures/edu_tools/ui/_general/exit",
  "textures/edu_tools/ui/environment/always_day",
@@ -15,6 +18,7 @@
  "textures/edu_tools/ui/main/build_markers",
  "textures/edu_tools/ui/main/focus_mode",
  "textures/edu_tools/ui/main/gamemode",
+ "textures/edu_tools/ui/main/help_flag",
  "textures/edu_tools/ui/main/lock_player",
  "textures/edu_tools/ui/main/teleport",
  "textures/edu_tools/ui/main/timer",

@@ -89,7 +89,6 @@ export class BuildMarkerService implements Module {
 				sceneManager.openSceneWithContext(context, BuildMarkersScene.id, true);
 			},
 			weight: 45,
-			trustedStudents: true,
 		};
 	}
 

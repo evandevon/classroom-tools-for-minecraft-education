@@ -43,7 +43,7 @@ To update, install the new file and check that the world lists the new version. 
 
 You get an **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
-Teachers can use every tool. Trusted students get a smaller menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes teachers, and for Warnings, Teleport and Gamemode it covers only students who are online.
+Only teachers can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes teachers, and for Warnings, Teleport and Gamemode it covers only students who are online.
 
 ## Features
 
@@ -122,14 +122,27 @@ Change game mode for selected students or Everybody. Students in Focus Mode are 
 
 Change the weather and time of day for the world.
 
-### Teachers and Trusted Students
+### Teachers and Helpers
 
 Any teacher can open this menu.
 
 - **Assign as Teacher:** Gives someone full control, including this menu. The person who first opened the world can't be removed here.
-- **Trusted Students:** They get a toolbox with **Build Markers** and **Teleport**, so they can travel to students and markers. They can't warn, freeze, lock or move anyone else, or use coordinates or the other tools. Class-wide tools still apply to them, and they can't open the toolbox while in Focus Mode.
+- **Add Helpers:** Gives students a **Helper Badge**. Helpers are still students, so class-wide tools apply to them, and they can't open the toolbox.
 
-Removing either role also takes the toolbox, including from someone who's offline when they return.
+Removing either role also takes the matching item, including from someone who's offline when they return.
+
+### Help Flags
+
+Every student gets a **Help Flag** item.
+
+1. A student uses it, and a flag saying "Ann needs help" appears. Using it again takes it down.
+2. Helpers and teachers hear a sound and get a chat message, and see the number waiting on screen.
+3. A helper uses their **Helper Badge**, or a teacher opens **Help Requests**, then chooses a student to teleport to them. The longest wait is listed first.
+4. When finished, they choose **Finished: Return to My Build** or **Finished: Stay Here**.
+
+Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged, and locked helpers can't go. Help visits are added to the Behaviour Log.
+
+Helpers can only teleport to students with a help flag up. Teach them to explain or show, rather than change another student's build.
 
 ### Teleport Requests
 

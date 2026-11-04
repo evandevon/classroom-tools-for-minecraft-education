@@ -11,6 +11,7 @@ import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
+import { HelpService } from "../help/help.service.ts";
 import { RolesScene } from "./roles.scene.ts";
 import { TimerService } from "../timer/timer.service.ts";
 import { formatTimeLeft } from "./timed-entries.ts";
@@ -22,7 +23,7 @@ import {
 /**
  * Knows who the teacher is. There is exactly one: the first person to open
  * the world with this pack on. Teachers can assign more teachers, who have
- * full control, and trusted students, who get a small set of travel tools. An operator can take over with
+ * full control, and helpers, who answer help flags. An operator can take over with
  * /scriptevent edu_tools:claim_teacher (for example on a copied world).
  */
 export class StudentsService implements Module {
@@ -31,7 +32,7 @@ export class StudentsService implements Module {
 	private static readonly TEACHER_KEY = "teacher_id";
 	// Keeps the old key so anyone given full authority in v1.8 stays a teacher.
 	private static readonly TEACHERS_KEY = "trusted_players";
-	private static readonly TRUSTED_STUDENTS_KEY = "trusted_students";
+	private static readonly HELPERS_KEY = "helpers";
 
 	constructor(private readonly moduleManager: ModuleManager) {}
 
@@ -54,7 +55,8 @@ export class StudentsService implements Module {
 					const player = event.sourceEntity as Player;
 					this.setTeacher(player);
 					this.removeTeacher(player.id);
-					this.removeTrustedStudent(player.id);
+					this.removeHelper(player.id);
+					this.help()?.syncItems(player);
 					this.items()?.giveEducatorTool(player);
 					player.sendMessage("§aYou are now the teacher in this world.");
 				}
@@ -152,12 +154,12 @@ export class StudentsService implements Module {
 		return this.readList(StudentsService.TEACHERS_KEY);
 	}
 
-	getTrustedStudents(): Record<string, string> {
-		return this.readList(StudentsService.TRUSTED_STUDENTS_KEY);
+	getHelpers(): Record<string, string> {
+		return this.readList(StudentsService.HELPERS_KEY);
 	}
 
-	isTrustedStudent(playerId: string): boolean {
-		return playerId in this.getTrustedStudents();
+	isHelper(playerId: string): boolean {
+		return playerId in this.getHelpers();
 	}
 
 	/** Same as isTeacher: kept for places that mean "not a student". */
@@ -167,24 +169,27 @@ export class StudentsService implements Module {
 
 	/** Who may hold a toolbox. */
 	canUseToolbox(playerId: string): boolean {
-		return this.isTeacher(playerId) || this.isTrustedStudent(playerId);
+		return this.isTeacher(playerId);
 	}
 
 	addTeachers(players: { id: string; name: string }[]): void {
 		const teachers = this.getAssignedTeachers();
-		const trusted = this.getTrustedStudents();
+		const helpers = this.getHelpers();
 		for (const { id, name } of players) {
 			if (this.getTeacherId() === id) continue;
 			teachers[id] = name;
-			delete trusted[id];
+			delete helpers[id];
+		}
+		this.saveList(StudentsService.TEACHERS_KEY, teachers);
+		this.saveList(StudentsService.HELPERS_KEY, helpers);
+		for (const { id } of players) {
 			const player = world.getEntity(id) as Player | undefined;
 			if (player) {
 				this.items()?.giveEducatorTool(player);
+				this.help()?.syncItems(player);
 				player.sendMessage("§aYou are now a teacher in this world.");
 			}
 		}
-		this.saveList(StudentsService.TEACHERS_KEY, teachers);
-		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
 	}
 
 	/** The original teacher isn't on this list, so can't be removed here. */
@@ -196,34 +201,44 @@ export class StudentsService implements Module {
 		this.afterRoleRemoved(playerId, "§eYou are no longer a teacher here.");
 	}
 
-	addTrustedStudents(players: { id: string; name: string }[]): void {
-		const trusted = this.getTrustedStudents();
+	addHelpers(players: { id: string; name: string }[]): void {
+		const helpers = this.getHelpers();
 		for (const { id, name } of players) {
-			if (this.isTeacher(id)) continue;
-			trusted[id] = name;
+			if (!this.isTeacher(id)) helpers[id] = name;
+		}
+		this.saveList(StudentsService.HELPERS_KEY, helpers);
+		for (const { id } of players) {
 			const player = world.getEntity(id) as Player | undefined;
 			if (player) {
-				this.items()?.giveEducatorTool(player);
+				this.help()?.syncItems(player);
 				player.sendMessage(
-					"§aYou are now a trusted student. Use the Classroom Toolbox to get around.",
+					"§aYou are now a helper. You'll hear a sound when someone needs help. Use your Helper Badge to go to them.",
 				);
 			}
 		}
-		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
 	}
 
-	removeTrustedStudent(playerId: string): void {
-		const trusted = this.getTrustedStudents();
-		if (!(playerId in trusted)) return;
-		delete trusted[playerId];
-		this.saveList(StudentsService.TRUSTED_STUDENTS_KEY, trusted);
-		this.afterRoleRemoved(playerId, "§eYou are no longer a trusted student.");
+	removeHelper(playerId: string): void {
+		const helpers = this.getHelpers();
+		if (!(playerId in helpers)) return;
+		delete helpers[playerId];
+		this.saveList(StudentsService.HELPERS_KEY, helpers);
+		const player = world.getEntity(playerId) as Player | undefined;
+		if (player) {
+			this.help()?.syncItems(player);
+			player.sendMessage("§eYou are no longer a helper.");
+		}
+	}
+
+	private help(): HelpService | undefined {
+		return this.moduleManager.getModule<HelpService>(HelpService.id);
 	}
 
 	private afterRoleRemoved(playerId: string, message: string): void {
 		const player = world.getEntity(playerId) as Player | undefined;
 		if (player && !this.canUseToolbox(playerId)) {
 			this.items()?.removeEducatorTool(player);
+			this.help()?.syncItems(player);
 			player.sendMessage(message);
 		}
 	}
@@ -253,7 +268,7 @@ export class StudentsService implements Module {
 		return world.getAllPlayers().find((p) => this.isTeacher(p.id));
 	}
 
-	/** Online players other than teachers, A to Z. Includes trusted students. */
+	/** Online players other than teachers, A to Z. */
 	getOnlineStudents(): Player[] {
 		return world.getAllPlayers()
 			.filter((p) => !this.isStaff(p.id))
@@ -284,8 +299,12 @@ export class StudentsService implements Module {
 		const timer = this.moduleManager.getModule<TimerService>(TimerService.id)
 			?.getHudText();
 		const students = this.getOnlineStudents();
+		const waiting = this.help()?.waitingCount() ?? 0;
 		for (const player of world.getAllPlayers()) {
 			const parts = timer ? [timer] : [];
+			if (waiting && (this.isTeacher(player.id) || this.isHelper(player.id))) {
+				parts.push(`Help needed: ${waiting}`);
+			}
 			if (this.isStaff(player.id)) {
 				const frozen =
 					students.filter((s) => this.focus()?.isFrozen(s.id)).length;

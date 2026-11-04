@@ -7,7 +7,7 @@ import { Selection } from "./timed-entries.ts";
 const names = (selection: Selection) =>
 	selection.players.map((p) => p.name).join(", ");
 
-/** Teachers assign other teachers and trusted students here. */
+/** Teachers assign other teachers and helpers here. */
 export class RolesScene extends ActionUIScene {
 	static readonly id = "roles";
 
@@ -19,12 +19,12 @@ export class RolesScene extends ActionUIScene {
 		super(RolesScene.id, context.getSourcePlayer());
 		this.setContext(context);
 		const teachers = Object.entries(service.getAssignedTeachers());
-		const trusted = Object.entries(service.getTrustedStudents());
+		const helpers = Object.entries(service.getHelpers());
 		const list = (items: [string, string][]) =>
 			items.map(([, name]) => name).join(", ") || "nobody";
 		this.setRawBody([{
 			text:
-				`§lAssigned teachers:§r ${list(teachers)}\n§lTrusted students:§r ${list(trusted)}\n\nTeachers have full control. Trusted students can travel to students and markers, but can't manage others.`,
+				`§lAssigned teachers:§r ${list(teachers)}\n§lHelpers:§r ${list(helpers)}\n\nTeachers have full control. Helpers can only teleport to students who have put up a help flag.`,
 		}]);
 
 		const pick = (
@@ -57,22 +57,17 @@ export class RolesScene extends ActionUIScene {
 				});
 			});
 		}
-		this.addButton("edu_tools.ui.roles.add_trusted", () => {
-			pick(
-				online().filter((s) => !service.isTrustedStudent(s.id)),
-				(selection) => {
-					service.addTrustedStudents(selection.players);
-					this.player.sendMessage(`§aNow trusted: ${names(selection)}`);
-				},
-			);
+		this.addButton("edu_tools.ui.roles.add_helper", () => {
+			pick(online().filter((s) => !service.isHelper(s.id)), (selection) => {
+				service.addHelpers(selection.players);
+				this.player.sendMessage(`§aNow a helper: ${names(selection)}`);
+			});
 		});
-		if (trusted.length) {
-			this.addButton("edu_tools.ui.roles.remove_trusted", () => {
-				pick(trusted.map(([id, name]) => ({ id, name })), (selection) => {
-					for (const { id } of selection.players) {
-						service.removeTrustedStudent(id);
-					}
-					this.player.sendMessage(`§aNo longer trusted: ${names(selection)}`);
+		if (helpers.length) {
+			this.addButton("edu_tools.ui.roles.remove_helper", () => {
+				pick(helpers.map(([id, name]) => ({ id, name })), (selection) => {
+					for (const { id } of selection.players) service.removeHelper(id);
+					this.player.sendMessage(`§aNo longer a helper: ${names(selection)}`);
 				});
 			});
 		}
