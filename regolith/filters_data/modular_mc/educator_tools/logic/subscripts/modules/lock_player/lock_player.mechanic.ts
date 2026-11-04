@@ -43,13 +43,13 @@ export class LockPlayerMechanic {
 			try {
 				const entry = this.service.getEntries().effective(player.id);
 				if (!entry) continue;
-				const area = this.service.getArea(player, entry.data);
+				const area = this.service.getActiveArea(player, entry.data);
 				if (!area) continue;
 				if (player.dimension.id !== area.dimensionId) {
 					this.teleportBack(player, area.center, area.dimensionId);
 					continue;
 				}
-				this.keepInside(player, area.center, entry.data.radius, entry.data.showBoundary, area.dimensionId);
+				this.keepInside(player, area.center, area.radius, area.showBoundary, area.dimensionId);
 			} catch (e) {
 				console.warn(`Lock failed for ${player.name}: ${e}`);
 			}

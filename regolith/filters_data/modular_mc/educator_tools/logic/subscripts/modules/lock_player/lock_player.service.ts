@@ -10,6 +10,7 @@ import {
 	Selection,
 	TimedEntries,
 } from "../students/timed-entries.ts";
+import { HelpService } from "../help/help.service.ts";
 import { LockPlayerMechanic } from "./lock_player.mechanic.ts";
 import {
 	LockPlayerScene,
@@ -27,6 +28,15 @@ export interface LockData {
 	dimensionId?: string;
 	followId?: string; // "follow": the teacher
 }
+
+export interface ActiveArea {
+	center: Vector3;
+	dimensionId: string;
+	radius: number;
+	showBoundary: boolean;
+}
+
+const HELPER_RANGE = 20;
 
 type SavedCentres = Record<string, { center: Vector3; dimensionId: string }>;
 
@@ -132,6 +142,43 @@ export class LockPlayerService implements Module {
 	isLocked(playerId: string): boolean {
 		return !this.students.isStaff(playerId) &&
 			!!this.entries.effective(playerId);
+	}
+
+	/**
+	 * The area a locked player must stay in right now. A locked helper shares
+	 * the area of the student they're helping, then goes back to their own.
+	 */
+	getActiveArea(
+		player: Player,
+		data: LockData,
+	): ActiveArea | undefined {
+		const request = this.moduleManager.getModule<HelpService>(HelpService.id)
+			?.getRequestBeingHelpedBy(player.id);
+		if (request) {
+			const studentLock = this.entries.effective(request.id);
+			const student = world.getEntity(request.id) as Player | undefined;
+			if (studentLock && student) {
+				const area = this.getArea(student, studentLock.data);
+				if (area) {
+					return {
+						...area,
+						radius: studentLock.data.radius,
+						showBoundary: studentLock.data.showBoundary,
+					};
+				}
+			}
+			// The student isn't locked, so stay close to their help flag.
+			return {
+				center: request.location,
+				dimensionId: request.dimensionId,
+				radius: HELPER_RANGE,
+				showBoundary: false,
+			};
+		}
+		const area = this.getArea(player, data);
+		return area
+			? { ...area, radius: data.radius, showBoundary: data.showBoundary }
+			: undefined;
 	}
 
 	/** Where this student's area is right now. */

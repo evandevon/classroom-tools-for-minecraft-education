@@ -152,7 +152,7 @@ Removing the teacher role also takes the toolbox, including from someone who's o
 
 Teachers can use I Need Help to demonstrate it to the class.
 
-Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged, and locked helpers can't go. Help visits are added to the Behaviour Log.
+Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged. A locked helper can still go: while helping, they share the student's locked area, or stay within 20 blocks of the flag if the student isn't locked, then return to their own area when finished. Only make someone a helper if you trust them with this. Help visits are added to the Behaviour Log.
 
 Helpers can only teleport to students with a help flag up. Teach them to explain or show, rather than change another student's build.
 

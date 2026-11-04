@@ -3,7 +3,6 @@ import { Module, ModuleManager } from "../../module-manager.ts";
 import { BehaviourLogService } from "../behaviour_log/behaviour_log.service.ts";
 import { BuildMarkerService } from "../build_marker/build_marker.service.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
-import { LockPlayerService } from "../lock_player/lock_player.service.ts";
 import { ButtonConfig } from "../main/main.service.ts";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
@@ -185,13 +184,6 @@ export class HelpService implements Module {
 		}
 		if (this.getRequestBeingHelpedBy(player.id)) {
 			player.sendMessage("§eFinish helping your current student first.");
-			return;
-		}
-		if (
-			this.moduleManager.getModule<LockPlayerService>(LockPlayerService.id)
-				?.isLocked(player.id)
-		) {
-			player.sendMessage("§eYou're locked to an area, so you can't go there.");
 			return;
 		}
 		request.helperId = player.id;
