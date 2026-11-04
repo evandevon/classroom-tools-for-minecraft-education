@@ -133,7 +133,7 @@ Removing either role also takes the matching item, including from someone who's 
 
 ### Help Flags
 
-Every student gets a **Help Flag** item.
+Every student gets a **Help Flag** item. The main teacher gets one too, for demonstrating how it works to the class.
 
 1. A student uses it, and a flag saying "Ann needs help" appears. Using it again takes it down.
 2. Helpers and teachers hear a sound and get a chat message, and see the number waiting on screen.

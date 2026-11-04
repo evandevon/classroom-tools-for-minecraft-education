@@ -124,7 +124,12 @@ export class HelpService implements Module {
 		if (!items) return;
 		try {
 			if (this.students().isTeacher(player.id)) {
-				items.removeItem(player, HELP_FLAG_ITEM);
+				// The main teacher keeps a flag for demonstrating to the class.
+				if (this.students().getTeacherId() === player.id) {
+					items.giveItem(player, HELP_FLAG_ITEM);
+				} else {
+					items.removeItem(player, HELP_FLAG_ITEM);
+				}
 				items.removeItem(player, HELPER_ITEM);
 				return;
 			}
@@ -140,7 +145,9 @@ export class HelpService implements Module {
 	}
 
 	private onFlagUsed(player: Player): void {
-		if (this.students().isTeacher(player.id) || this.isFrozen(player.id)) return;
+		const isOtherTeacher = this.students().isTeacher(player.id) &&
+			this.students().getTeacherId() !== player.id;
+		if (isOtherTeacher || this.isFrozen(player.id)) return;
 		const existing = this.requests.find((r) => r.id === player.id);
 		if (existing) {
 			this.cancel(existing);
