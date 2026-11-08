@@ -1,6 +1,17 @@
 # Classroom Tools for Minecraft Education
 
-A simple classroom management add-on for Minecraft Education. Warn, freeze or lock students, run a visible timer, mark and visit student builds, and hold a safe class showcase.
+A simple classroom management add-on for Minecraft Education. Warn, freeze or lock students, run a visible timer, mark and visit student builds, handle help requests, and hold a safe class showcase.
+
+## Why it exists
+
+In a shared world, small problems grow quickly: one student wanders off, another breaks a build, and the class stops listening while you type commands. Minecraft Education's built-in tools can do much of this, but they usually need typed commands, exact player names and switching between screens mid-lesson.
+
+Classroom Tools puts the common jobs into one menu, so you can:
+
+- **act in seconds** by ticking names or **Everybody**, with no commands to type
+- **respond in steps**, from a warning to Focus Mode to a lock, rather than jumping to the strongest consequence
+- **run routines** such as pack-up time, showcases and help requests, so students know what to expect
+- **keep a record** that you can copy into your school's own system
 
 Classroom Tools is a modified version of [Educator Tools](https://github.com/ShapescapeMC/Educator-Tools) by Shapescape ApS. It is an independent project and is not made or endorsed by Shapescape.
 
@@ -12,6 +23,7 @@ Classroom Tools is a modified version of [Educator Tools](https://github.com/Sha
 - [Add it to a world](#add-it-to-a-world)
 - [Using the toolbox](#using-the-toolbox)
 - [Features](#features)
+- [Stopping students getting around it](#stopping-students-getting-around-it)
 - [Exporting or sharing a world](#exporting-or-sharing-a-world)
 - [Troubleshooting](#troubleshooting)
 - [Building from source](#building-from-source)
@@ -41,7 +53,7 @@ To update, install the new file and check that the world lists the new version. 
 
 ## Using the toolbox
 
-You get an **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
+You get a **Classroom Toolbox** item. Select it and right-click on a computer to open the menu. If it's missing, leave and rejoin the world, or search for it in your Creative inventory.
 
 Only teachers can open the menu. Most actions start with a list of online students, where you tick individual students or **Everybody**. Everybody never includes teachers, and for Warnings, Teleport and Gamemode it covers only students who are online.
 
@@ -49,13 +61,17 @@ Only teachers can open the menu. Most actions start with a list of online studen
 
 ### Give a Warning
 
-A reminder before any consequence. Choose students and send the default message, edit it, or clear it.
+**Why:** Most behaviour needs a nudge, not a consequence. A warning gives a clear first step that the student can't miss, even when they're absorbed in the game, and it's private to that student apart from the particles.
+
+Choose students and send the default message, edit it, or clear it.
 
 - The student's screen flashes red, a sound plays, and they see **Warning 1** with your message.
 - Angry particles appear above their head for about 5 seconds, which other students can see.
 - Your list shows each student's warning count. Counts reset when the world is reopened.
 
 ### Focus Mode
+
+**Why:** Students rarely look up from the screen while they can still play. Focus Mode gets everyone's attention for instructions or a class discussion, and can also give one student a short reset. Muting chat stops messages being sent while you talk.
 
 Freezes students where they are. They can't move or build, can't be hurt, and their screen dims.
 
@@ -66,6 +82,8 @@ Freezes students where they are. They can't move or build, can't be hurt, and th
 Everybody also covers students who join later. When someone is in Focus Mode, the menu offers **Add Students** and **Release Students**, and **End Focus Mode for Everybody** appears at the top of the main menu.
 
 ### Lock to an Area
+
+**Why:** Sometimes students should keep working but stay in one place, for example a student who keeps visiting other builds, or a group task in one spot. A lock is less disruptive than Focus Mode, because they can still build. Following you is useful for a guided walk.
 
 Keeps students within a set distance. They can still build inside the area. Students near the edge are pushed back, and students further out are teleported to the centre.
 
@@ -79,6 +97,8 @@ Choose students, then set:
 **Unlock Students** releases some students, and **Unlock Everybody** appears on the main menu when anyone is locked. Your settings are remembered for next time.
 
 ### Timer
+
+**Why:** A visible countdown helps students manage their own time and reduces "how long left?" questions. The end actions turn routines into something that happens automatically, so pack-up time or the showcase starts on time even when you're busy helping someone.
 
 Create, start, pause, edit or remove a countdown. Everybody sees it above their hotbar, and only teachers can control it.
 
@@ -98,6 +118,8 @@ Teachers aren't affected. Students in Focus Mode skip game mode changes, and a r
 
 ### Student Tools
 
+**Why:** Students can do common jobs themselves, such as asking for help or getting back to their build, without calling out or needing you to teleport them. Everything is in one item, so there's only one thing to teach. Teachers get it too, so you can demonstrate on the board.
+
 Everybody, including teachers, gets one **Student Tools** item. Using it opens a menu, so teachers can show the class exactly what students see.
 
 - **I Need Help** or **Take Down My Help Flag**
@@ -110,6 +132,8 @@ It can't be opened in Focus Mode, and locked students can't use it to leave thei
 
 ### Build Markers
 
+**Why:** In a large world, finding a student's build takes time, and students often get lost. Markers let anyone return to their build and let you visit, check or gather students at a build. They also power the showcase list, and the **without a marker** list shows who hasn't started yet.
+
 **Place or Move My Marker** places a flag labelled with the person's name. Choosing it again moves the flag, so each person has one.
 
 In your **Build Markers** menu, you can:
@@ -119,6 +143,8 @@ In your **Build Markers** menu, you can:
 - remove one marker or all of them
 
 ### Start Showcase
+
+**Why:** Sharing work is valuable, but visitors can break builds, start fights or set off TNT. Showcase makes the world safe to visit with one button, then puts everything back afterwards.
 
 For a class tour of each other's work.
 
@@ -134,19 +160,27 @@ Adventure mode doesn't stop everything. Students can still open chests and use d
 
 ### Teleport
 
+**Why:** Gather the class, rescue a stuck student, or go and check work without typing coordinates or names.
+
 - **Just Me:** go to a student, a marker or typed coordinates, such as `100 64 -20`.
 - **Students:** send students to you, another student or a marker.
 - **Set World Spawn Point Here:** sets the Overworld spawn to where you're standing. Returning students normally appear where they left off, so this mainly affects first-time joiners and respawning players.
 
 ### Gamemode
 
+**Why:** Switching modes is useful in different parts of a lesson: Adventure stops building during a discussion or quiz, Creative for building time, and Survival for gathering challenges.
+
 Change game mode for selected students or Everybody. Students in Focus Mode are skipped, and this option is unavailable during a showcase.
 
 ### Weather and Time
 
+**Why:** Night and storms make building and screenshots harder, and mobs can distract students. This keeps conditions clear, for example before students take journal screenshots.
+
 Change the weather and time of day for the world.
 
 ### Teachers and Helpers
+
+**Why:** A second teacher or support staff member may need full control, and confident students can help classmates so you're not the only person who can answer questions.
 
 Any teacher can open this menu.
 
@@ -156,6 +190,8 @@ Any teacher can open this menu.
 Removing the teacher role also takes the toolbox, including from someone who's offline when they return.
 
 ### Help Flags
+
+**Why:** Students waiting with a hand up stop working, and calling out disrupts others. A help flag marks exactly where the student is, keeps a fair queue, and lets trusted helpers take some of the load.
 
 1. Someone chooses **I Need Help** in Student Tools, and a flag saying "Ann needs help" appears. **Take Down My Help Flag** removes it.
 2. Helpers and teachers hear a sound and get a chat message, and see the number waiting on screen.
@@ -170,6 +206,8 @@ Helpers can only teleport to students with a help flag up. Teach them to explain
 
 ### Teleport Requests
 
+**Why:** Collaboration often means visiting a partner, but free teleporting leads to students turning up uninvited. Requests need the other student's permission, and you can turn them off at any time.
+
 **Allow Teleport Requests** turns this on for students, and **Stop Teleport Requests** turns it off.
 
 While it's on, **Student Tools** includes **Ask to Visit Someone**. Choose another student's character or build. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
@@ -178,11 +216,25 @@ Students can ask once every 20 seconds. Students in Focus Mode or locked to an a
 
 ### Behaviour Log
 
+**Why:** It's hard to remember who was warned or locked, and when, by the end of a busy lesson. The log gives you notes for follow-up and your school's records.
+
 Records warnings, Focus Mode, locks, releases and time limits ending, with the student's name and time. It keeps the newest 200 events until you clear it.
 
 To copy it, choose **Copy Log**, click the box, then press **Ctrl+A** and **Ctrl+C**. Each page holds 25 events, and **Submit** opens the next page.
 
 The log contains information about students. Treat it as a prompt for your school's official records, check that it fits your school's policies, and clear it before sharing a world.
+
+## Stopping students getting around it
+
+The add-on's limits only work if students don't have more power than it does. Students with **operator** permissions can change their own game mode, teleport, remove their own mute, or make themselves the teacher.
+
+- **Keep students as Members.** Check each student in the player list, and set the world's default **Player Permissions** to **Member**, so students who join later don't get operator access.
+- **Test on a student account.** Members should get an error for `/gamemode creative`, `/tp @s ~ ~10 ~` and `/scriptevent edu_tools:claim_teacher`. Press **C** to check whether Code Builder opens.
+- **Open new worlds first,** because the first person to open a world with the pack becomes the teacher.
+- **Lock your screen** when you step away, because teacher access follows your account.
+- **Back up the world** before lessons. Locks limit where students can go, not what they can affect, so lava, water, TNT and redstone can still reach nearby builds. Space builds apart, or use Minecraft Education's Allow, Deny and Border blocks.
+
+Focus Mode and locks reapply if a student leaves and rejoins, but they only affect Minecraft, not other apps on the computer.
 
 ## Exporting or sharing a world
 
@@ -231,7 +283,7 @@ Use `simple_build`, not the upstream Regolith setup or GitHub release workflows,
 
 **Removed:** teams, nicknames, assignments, inventory tools, health tools, classroom limitations, world settings, feedback prompts, letter blocks and translations other than English.
 
-**Added:** a single teacher, a student picker with Everybody, time limits for Focus Mode and locks, chat muting, warnings, build markers, Showcase, a behaviour log, an on-screen timer for everyone and a world spawn button.
+**Added:** a main teacher with optional extra teachers and student helpers, a student picker with Everybody, time limits for Focus Mode and locks, chat muting, warnings, a Student Tools item for everybody, build markers, help flags, teleport requests, Showcase, a behaviour log, an on-screen timer with actions when time is up, and a world spawn button.
 
 ## Licence
 
