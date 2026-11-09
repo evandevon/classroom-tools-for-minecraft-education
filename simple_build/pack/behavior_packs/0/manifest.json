@@ -8,7 +8,7 @@
         "version": [
             1,
             14,
-            1
+            2
         ],
         "min_engine_version": [
             1,
@@ -33,7 +33,7 @@
             "version": [
                 1,
                 14,
-                1
+                2
             ],
             "entry": "scripts/edu_tools/main.js"
         }
@@ -44,7 +44,7 @@
             "version": [
                 1,
                 14,
-                1
+                2
             ]
         },
         {

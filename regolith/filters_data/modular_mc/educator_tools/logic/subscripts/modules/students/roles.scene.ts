@@ -1,16 +1,34 @@
+import { world } from "@minecraft/server";
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { ModalUIScene } from "../scene_manager/ui-scene.ts";
+import { ActionUIScene, ModalUIScene } from "../scene_manager/ui-scene.ts";
 import { StudentsService } from "./students.service.ts";
 
-type Person = { id: string; name: string };
+type Person = { id: string; name: string; online: boolean };
 
-/**
- * One screen for roles. Each student has a Helper switch: on means they're a
- * helper, off means they aren't. Assigned teachers have a Teacher switch, and
- * a dropdown makes someone new a teacher.
- */
-export class RolesScene extends ModalUIScene {
+const byName = (a: Person, b: Person) => a.name.localeCompare(b.name);
+
+/** Lists online students plus anyone offline who already has the role. */
+function people(
+	service: StudentsService,
+	holders: Record<string, string>,
+): Person[] {
+	const online = service.getOnlineStudents().map((s) => ({
+		id: s.id,
+		name: s.name,
+		online: true,
+	}));
+	const listed = new Set(online.map((p) => p.id));
+	// Assigned teachers aren't students, so add them whether online or not.
+	const connected = new Set(world.getAllPlayers().map((p) => p.id));
+	const others = Object.entries(holders)
+		.filter(([id]) => !listed.has(id))
+		.map(([id, name]) => ({ id, name, online: connected.has(id) }));
+	return [...online, ...others].sort(byName);
+}
+
+/** Chooses which role to manage: Teachers or Helpers. */
+export class RolesScene extends ActionUIScene {
 	static readonly id = "roles";
 
 	constructor(
@@ -20,80 +38,94 @@ export class RolesScene extends ModalUIScene {
 	) {
 		super(RolesScene.id, context.getSourcePlayer());
 		this.setContext(context);
-
-		const byName = (a: Person, b: Person) => a.name.localeCompare(b.name);
-		const online = service.getOnlineStudents().map((s) => ({
-			id: s.id,
-			name: s.name,
-		}));
-		const onlineIds = new Set(online.map((p) => p.id));
-		const helperList = service.getHelpers();
-		// Offline helpers are listed too, so they can be switched off.
-		const offlineHelpers = Object.entries(helperList)
-			.filter(([id]) => !onlineIds.has(id) && !service.isTeacher(id))
-			.map(([id, name]) => ({ id, name }));
-		const helperRows = [...online, ...offlineHelpers].sort(byName);
-		const teacherRows = Object.entries(service.getAssignedTeachers())
-			.map(([id, name]) => ({ id, name }))
-			.sort(byName);
-
-		const helperChoices = new Map<string, boolean>();
-		const teacherChoices = new Map<string, boolean>();
-		let newTeacher: Person | undefined;
-
-		for (const person of helperRows) {
-			const offline = onlineIds.has(person.id) ? "" : " §7(offline)§r";
-			this.addToggle(
-				`Helper: ${person.name}${offline}`,
-				(v) => helperChoices.set(person.id, v),
-				{ defaultValue: person.id in helperList },
-			);
-		}
-		for (const person of teacherRows) {
-			this.addToggle(
-				`Teacher: ${person.name}`,
-				(v) => teacherChoices.set(person.id, v),
-				{ defaultValue: true },
-			);
-		}
-		this.addDropdown(
-			"Make someone a teacher",
-			["Nobody", ...online.map((p) => p.name)],
-			(index: number) => {
-				newTeacher = index > 0 ? online[index - 1] : undefined;
+		const list = (items: Record<string, string>) =>
+			Object.values(items).join(", ") || "nobody";
+		this.setRawBody([{
+			text:
+				`§lTeachers:§r ${list(service.getAssignedTeachers())}\n§lHelpers:§r ${list(service.getHelpers())}\n\nTeachers have full control. Helpers can only teleport to students who have put up a help flag.`,
+		}]);
+		this.addButton("edu_tools.ui.roles.teachers", () => {
+			sceneManager.openSceneWithContext(context, RoleSwitchesScene.teachersId, true);
+		}, "textures/edu_tools/ui/main/trusted_players");
+		this.addButton("edu_tools.ui.roles.helpers", () => {
+			sceneManager.openSceneWithContext(context, RoleSwitchesScene.helpersId, true);
+		}, "textures/edu_tools/ui/main/help_flag");
+		this.addButton(
+			"edu_tools.ui.buttons.back",
+			() => {
+				sceneManager.goBackToScene(context, "main");
 			},
-			{ defaultValueIndex: 0 },
+			"textures/edu_tools/ui/_general/back",
 		);
+		this.show(context.getSourcePlayer(), sceneManager);
+	}
+}
+
+/**
+ * One switch per person: on means they have the role, off means they don't.
+ * Used for both the Teachers page and the Helpers page.
+ */
+export class RoleSwitchesScene extends ModalUIScene {
+	static readonly teachersId = "roles_teachers";
+	static readonly helpersId = "roles_helpers";
+
+	constructor(
+		sceneManager: SceneManager,
+		context: SceneContext,
+		service: StudentsService,
+		role: "teacher" | "helper",
+	) {
+		super(
+			role === "teacher" ? RoleSwitchesScene.teachersId : RoleSwitchesScene.helpersId,
+			context.getSourcePlayer(),
+		);
+		this.setContext(context);
+		const holders = role === "teacher"
+			? service.getAssignedTeachers()
+			: service.getHelpers();
+		const rows = people(service, holders);
+		if (rows.length === 0) {
+			sceneManager.openSceneWithContext(context, "not_enough_players", true);
+			return;
+		}
+
+		const choices = new Map<string, boolean>();
+		for (const person of rows) {
+			this.addToggle(
+				person.online ? person.name : `${person.name} §7(offline)§r`,
+				(v) => choices.set(person.id, v),
+				{ defaultValue: person.id in holders },
+			);
+		}
 
 		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
 			if (r.canceled) return;
-			const changes: string[] = [];
-			const nowHelpers: Person[] = [];
-			for (const person of helperRows) {
-				const on = helperChoices.get(person.id) === true;
-				const was = person.id in helperList;
-				if (on && !was && newTeacher?.id !== person.id) nowHelpers.push(person);
+			const added: Person[] = [];
+			const removed: string[] = [];
+			for (const person of rows) {
+				const on = choices.get(person.id) === true;
+				const was = person.id in holders;
+				if (on && !was) added.push(person);
 				if (!on && was) {
-					service.removeHelper(person.id);
-					changes.push(`${person.name} is no longer a helper`);
+					if (role === "teacher") service.removeTeacher(person.id);
+					else service.removeHelper(person.id);
+					removed.push(person.name);
 				}
 			}
-			if (nowHelpers.length) {
-				service.addHelpers(nowHelpers);
-				changes.push(`Now helping: ${nowHelpers.map((p) => p.name).join(", ")}`);
+			if (added.length) {
+				if (role === "teacher") service.addTeachers(added);
+				else service.addHelpers(added);
 			}
-			for (const person of teacherRows) {
-				if (teacherChoices.get(person.id) === false) {
-					service.removeTeacher(person.id);
-					changes.push(`${person.name} is no longer a teacher`);
-				}
+			const label = role === "teacher" ? "teacher" : "helper";
+			const parts: string[] = [];
+			if (added.length) {
+				parts.push(`Now a ${label}: ${added.map((p) => p.name).join(", ")}`);
 			}
-			if (newTeacher) {
-				service.addTeachers([newTeacher]);
-				changes.push(`${newTeacher.name} is now a teacher`);
+			if (removed.length) {
+				parts.push(`No longer a ${label}: ${removed.join(", ")}`);
 			}
 			this.player.sendMessage(
-				changes.length ? `§a${changes.join(". ")}.` : "§7No changes made.",
+				parts.length ? `§a${parts.join(". ")}.` : "§7No changes made.",
 			);
 		});
 	}

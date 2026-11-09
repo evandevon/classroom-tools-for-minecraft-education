@@ -12,7 +12,7 @@ import { SceneManager } from "../scene_manager/scene-manager.ts";
 import { FocusModeService } from "../focus_mode/focus_mode.service.ts";
 import { LockPlayerService } from "../lock_player/lock_player.service.ts";
 import { HelpService } from "../help/help.service.ts";
-import { RolesScene } from "./roles.scene.ts";
+import { RolesScene, RoleSwitchesScene } from "./roles.scene.ts";
 import { TimerService } from "../timer/timer.service.ts";
 import { formatTimeLeft } from "./timed-entries.ts";
 import {
@@ -69,6 +69,18 @@ export class StudentsService implements Module {
 			RolesScene.id,
 			(manager: SceneManager, context: SceneContext) => {
 				new RolesScene(manager, context, this);
+			},
+		);
+		sceneManager.registerScene(
+			RoleSwitchesScene.teachersId,
+			(manager: SceneManager, context: SceneContext) => {
+				new RoleSwitchesScene(manager, context, this, "teacher");
+			},
+		);
+		sceneManager.registerScene(
+			RoleSwitchesScene.helpersId,
+			(manager: SceneManager, context: SceneContext) => {
+				new RoleSwitchesScene(manager, context, this, "helper");
 			},
 		);
 		sceneManager.registerScene(

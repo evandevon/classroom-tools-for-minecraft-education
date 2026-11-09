@@ -187,11 +187,10 @@ Change the weather and time of day for the world.
 
 Any teacher can open this menu.
 
-Everything is on one screen:
+The menu has two pages, **Teachers** and **Helpers**. Each lists every student with an on/off switch: on means they have that role, off means they don't. People who have the role but are offline are listed too, so you can switch them off.
 
-- **Helper switches:** Each student has a switch. On means they're a helper, off means they aren't. Helpers who are offline are listed too, so you can switch them off. Helpers get **Help Requests** in Student Tools. They're still students, so class-wide tools apply to them, and they can't open the toolbox.
-- **Teacher switches:** Each assigned teacher has a switch, which is on. Switch it off to remove the role. The person who first opened the world isn't listed and can't be removed.
-- **Make someone a teacher:** Choose a student to give them full control, including this screen.
+- **Teachers:** Full control, including this menu. The person who first opened the world isn't listed and can't be removed.
+- **Helpers:** Get **Help Requests** in Student Tools. Helpers are still students, so class-wide tools apply to them, and they can't open the toolbox. Making a helper a teacher removes their helper role.
 
 Removing the teacher role also takes the toolbox, including from someone who's offline when they return.
 
