@@ -127,6 +127,14 @@ export class FocusModeService implements Module {
 		this.entries.releaseAll();
 	}
 
+	/**
+	 * True while Focus Mode controls this player's game mode, including the
+	 * moment after it ends but before their old mode has been put back.
+	 */
+	holdsGameMode(player: Player): boolean {
+		return this.isFrozen(player.id) || this.wasFrozen(player);
+	}
+
 	isFrozen(playerId: string): boolean {
 		return !this.students.isStaff(playerId) &&
 			!!this.entries.effective(playerId);

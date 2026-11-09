@@ -148,7 +148,7 @@ export class ShowcaseService implements Module {
 			FocusModeService.id,
 		);
 		for (const student of this.students.getOnlineStudents()) {
-			if (focus?.isFrozen(student.id)) continue;
+			if (focus?.holdsGameMode(student)) continue;
 			try {
 				const saved = student.getDynamicProperty(SAVED_MODE);
 				if (active) {

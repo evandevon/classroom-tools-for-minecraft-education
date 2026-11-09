@@ -73,7 +73,7 @@ export class GamemodeService implements Module {
 		for (const { id } of selection.players) {
 			const player = world.getEntity(id) as Player | undefined;
 			if (!player) continue;
-			if (focus?.isFrozen(id)) frozen++;
+			if (focus?.holdsGameMode(player)) frozen++;
 			else player.setGameMode(gamemode);
 		}
 		return frozen;
