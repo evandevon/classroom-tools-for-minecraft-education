@@ -12,6 +12,7 @@ import { ActionUIScene } from "../scene_manager/ui-scene.ts";
 import { StudentsService } from "../students/students.service.ts";
 
 const ACTIVE_KEY = "teleport_requests_on";
+const VISITORS_KEY = "teleport_visitors";
 const COOLDOWN_MS = 20000;
 const BUSY_RETRIES = 5;
 const BUSY_RETRY_TICKS = 40;
@@ -85,6 +86,60 @@ export class TeleportRequestsService implements Module {
 				active
 					? "§aYou can now ask to visit others. Open Student Tools."
 					: "§eTeleport requests have been turned off.",
+			);
+		}
+		if (!active) this.returnVisitors();
+		world.setDynamicProperty(VISITORS_KEY, undefined);
+	}
+
+	private getVisitors(): string[] {
+		try {
+			const raw = world.getDynamicProperty(VISITORS_KEY);
+			return typeof raw === "string" ? JSON.parse(raw) : [];
+		} catch {
+			return [];
+		}
+	}
+
+	private addVisitor(id: string): void {
+		const visitors = this.getVisitors();
+		if (!visitors.includes(id)) visitors.push(id);
+		world.setDynamicProperty(VISITORS_KEY, JSON.stringify(visitors));
+	}
+
+	/** Sends students who visited someone back to their own build. */
+	private returnVisitors(): void {
+		const missing: string[] = [];
+		let returned = 0;
+		for (const id of this.getVisitors()) {
+			const player = world.getEntity(id) as Player | undefined;
+			if (!player || this.students().isStaff(id)) continue;
+			try {
+				const marker = this.markers().getMarker(id);
+				if (!marker) {
+					missing.push(player.name);
+					player.sendMessage("§ePlace your marker so you can return to your build.");
+					continue;
+				}
+				// Locked students couldn't visit, and their lock keeps them in place.
+				if (this.isLocked(id)) continue;
+				player.teleport(marker.location, {
+					dimension: world.getDimension(marker.dimensionId),
+				});
+				player.sendMessage("§aYou're back at your build.");
+				returned++;
+			} catch (e) {
+				console.warn(`Could not return ${id}: ${e}`);
+			}
+		}
+		if (returned) {
+			this.students().notifyTeacher(
+				`§a${returned} visitor${returned === 1 ? "" : "s"} sent back to their builds.`,
+			);
+		}
+		if (missing.length) {
+			this.students().notifyTeacher(
+				`§eNo marker, so not sent back: ${missing.join(", ")}`,
 			);
 		}
 	}
@@ -207,6 +262,7 @@ export class TeleportRequestsService implements Module {
 		} else {
 			from.teleport(to.location, { dimension: to.dimension });
 		}
+		this.addVisitor(from.id);
 		from.sendMessage(`§a${to.name} said yes.`);
 		to.sendMessage(`§a${from.name} is visiting you.`);
 		this.moduleManager.getModule<BehaviourLogService>(BehaviourLogService.id)
@@ -228,11 +284,11 @@ class VisitListScene extends ActionUIScene {
 		// Students only, and only ones online who can answer.
 		for (const student of service.students().getOnlineStudents()) {
 			if (student.id === this.player.id) continue;
-			this.addButton(`${student.name} (character)`, () => {
+			this.addButton(`Go to ${student.name}`, () => {
 				service.request(this.player, student.id, "character");
 			});
 			if (service.markers().getMarker(student.id)) {
-				this.addButton(`${student.name}'s build`, () => {
+				this.addButton(`Visit ${student.name}'s build`, () => {
 					service.request(this.player, student.id, "build");
 				});
 			}

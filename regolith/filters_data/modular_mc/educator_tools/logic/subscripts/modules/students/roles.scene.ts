@@ -1,14 +1,16 @@
 import { SceneContext } from "../scene_manager/scene-context.ts";
 import { SceneManager } from "../scene_manager/scene-manager.ts";
-import { ActionUIScene } from "../scene_manager/ui-scene.ts";
+import { ModalUIScene } from "../scene_manager/ui-scene.ts";
 import { StudentsService } from "./students.service.ts";
-import { Selection } from "./timed-entries.ts";
 
-const names = (selection: Selection) =>
-	selection.players.map((p) => p.name).join(", ");
+type Person = { id: string; name: string };
 
-/** Teachers assign other teachers and helpers here. */
-export class RolesScene extends ActionUIScene {
+/**
+ * One screen for roles. Each student has a Helper switch: on means they're a
+ * helper, off means they aren't. Assigned teachers have a Teacher switch, and
+ * a dropdown makes someone new a teacher.
+ */
+export class RolesScene extends ModalUIScene {
 	static readonly id = "roles";
 
 	constructor(
@@ -18,66 +20,81 @@ export class RolesScene extends ActionUIScene {
 	) {
 		super(RolesScene.id, context.getSourcePlayer());
 		this.setContext(context);
-		const teachers = Object.entries(service.getAssignedTeachers());
-		const helpers = Object.entries(service.getHelpers());
-		const list = (items: [string, string][]) =>
-			items.map(([, name]) => name).join(", ") || "nobody";
-		this.setRawBody([{
-			text:
-				`§lAssigned teachers:§r ${list(teachers)}\n§lHelpers:§r ${list(helpers)}\n\nTeachers have full control. Helpers can only teleport to students who have put up a help flag.`,
-		}]);
 
-		const pick = (
-			players: { id: string; name: string }[],
-			apply: (selection: Selection) => void,
-		) => {
-			if (players.length === 0) {
-				sceneManager.openSceneWithContext(context, "not_enough_players", true);
-				return;
-			}
-			sceneManager.openSceneWithContext(context, "player_select", true, {
-				players,
-				onSelected: apply,
-			});
-		};
-		const online = () =>
-			service.getOnlineStudents().map((s) => ({ id: s.id, name: s.name }));
+		const byName = (a: Person, b: Person) => a.name.localeCompare(b.name);
+		const online = service.getOnlineStudents().map((s) => ({
+			id: s.id,
+			name: s.name,
+		}));
+		const onlineIds = new Set(online.map((p) => p.id));
+		const helperList = service.getHelpers();
+		// Offline helpers are listed too, so they can be switched off.
+		const offlineHelpers = Object.entries(helperList)
+			.filter(([id]) => !onlineIds.has(id) && !service.isTeacher(id))
+			.map(([id, name]) => ({ id, name }));
+		const helperRows = [...online, ...offlineHelpers].sort(byName);
+		const teacherRows = Object.entries(service.getAssignedTeachers())
+			.map(([id, name]) => ({ id, name }))
+			.sort(byName);
 
-		this.addButton("edu_tools.ui.roles.add_teacher", () => {
-			pick(online(), (selection) => {
-				service.addTeachers(selection.players);
-				this.player.sendMessage(`§aNow a teacher: ${names(selection)}`);
-			});
-		});
-		if (teachers.length) {
-			this.addButton("edu_tools.ui.roles.remove_teacher", () => {
-				pick(teachers.map(([id, name]) => ({ id, name })), (selection) => {
-					for (const { id } of selection.players) service.removeTeacher(id);
-					this.player.sendMessage(`§aNo longer a teacher: ${names(selection)}`);
-				});
-			});
+		const helperChoices = new Map<string, boolean>();
+		const teacherChoices = new Map<string, boolean>();
+		let newTeacher: Person | undefined;
+
+		for (const person of helperRows) {
+			const offline = onlineIds.has(person.id) ? "" : " §7(offline)§r";
+			this.addToggle(
+				`Helper: ${person.name}${offline}`,
+				(v) => helperChoices.set(person.id, v),
+				{ defaultValue: person.id in helperList },
+			);
 		}
-		this.addButton("edu_tools.ui.roles.add_helper", () => {
-			pick(online().filter((s) => !service.isHelper(s.id)), (selection) => {
-				service.addHelpers(selection.players);
-				this.player.sendMessage(`§aNow a helper: ${names(selection)}`);
-			});
-		});
-		if (helpers.length) {
-			this.addButton("edu_tools.ui.roles.remove_helper", () => {
-				pick(helpers.map(([id, name]) => ({ id, name })), (selection) => {
-					for (const { id } of selection.players) service.removeHelper(id);
-					this.player.sendMessage(`§aNo longer a helper: ${names(selection)}`);
-				});
-			});
+		for (const person of teacherRows) {
+			this.addToggle(
+				`Teacher: ${person.name}`,
+				(v) => teacherChoices.set(person.id, v),
+				{ defaultValue: true },
+			);
 		}
-		this.addButton(
-			"edu_tools.ui.buttons.back",
-			() => {
-				sceneManager.goBackToScene(context, "main");
+		this.addDropdown(
+			"Make someone a teacher",
+			["Nobody", ...online.map((p) => p.name)],
+			(index: number) => {
+				newTeacher = index > 0 ? online[index - 1] : undefined;
 			},
-			"textures/edu_tools/ui/_general/back",
+			{ defaultValueIndex: 0 },
 		);
-		this.show(context.getSourcePlayer(), sceneManager);
+
+		this.show(context.getSourcePlayer(), sceneManager).then((r) => {
+			if (r.canceled) return;
+			const changes: string[] = [];
+			const nowHelpers: Person[] = [];
+			for (const person of helperRows) {
+				const on = helperChoices.get(person.id) === true;
+				const was = person.id in helperList;
+				if (on && !was && newTeacher?.id !== person.id) nowHelpers.push(person);
+				if (!on && was) {
+					service.removeHelper(person.id);
+					changes.push(`${person.name} is no longer a helper`);
+				}
+			}
+			if (nowHelpers.length) {
+				service.addHelpers(nowHelpers);
+				changes.push(`Now helping: ${nowHelpers.map((p) => p.name).join(", ")}`);
+			}
+			for (const person of teacherRows) {
+				if (teacherChoices.get(person.id) === false) {
+					service.removeTeacher(person.id);
+					changes.push(`${person.name} is no longer a teacher`);
+				}
+			}
+			if (newTeacher) {
+				service.addTeachers([newTeacher]);
+				changes.push(`${newTeacher.name} is now a teacher`);
+			}
+			this.player.sendMessage(
+				changes.length ? `§a${changes.join(". ")}.` : "§7No changes made.",
+			);
+		});
 	}
 }

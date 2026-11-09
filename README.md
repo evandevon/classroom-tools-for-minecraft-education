@@ -85,12 +85,14 @@ Everybody also covers students who join later. When someone is in Focus Mode, th
 
 **Why:** Sometimes students should keep working but stay in one place, for example a student who keeps visiting other builds, or a group task in one spot. A lock is less disruptive than Focus Mode, because they can still build. Following you is useful for a guided walk.
 
-Keeps students within a set distance. They can still build inside the area. Students near the edge are pushed back, and students further out are teleported to the centre.
+Keeps students within a set distance. They can still build inside the area.
+
+The edge works like a wall: anyone who goes past it, however they got there, is put straight back at their last spot inside. Students riding a boat, minecart or animal are taken off it first. Anyone who keeps pushing against the edge is sent to the centre, and teachers get a message and a Behaviour Log entry.
 
 Choose students, then set:
 
 - **How long:** a time limit or until you release them.
-- **Where:** around each student, around where you're standing, or following you.
+- **Where:** around each student, around where you're standing, or following you. If you briefly drop out while students are following you, their area stays where you were last.
 - **How far:** 5 to 150 blocks.
 - **Show the edge:** whether students see the boundary.
 
@@ -109,7 +111,7 @@ Create, start, pause, edit or remove a countdown. Everybody sees it above their 
 - End Focus Mode
 - Start Showcase or End Showcase
 - Unlock Everybody
-- Allow or Stop Teleport Requests
+- Allow or Stop Teleport Requests (stopping sends visitors back to their builds)
 - Place a marker for anyone without one, where they're standing at that moment
 - Show a message on everyone's screen
 - Set everybody to Adventure (no building) or Creative
@@ -123,6 +125,7 @@ Teachers aren't affected. Students in Focus Mode skip game mode changes, and a r
 Everybody, including teachers, gets one **Student Tools** item. Using it opens a menu, so teachers can show the class exactly what students see.
 
 - **I Need Help** or **Take Down My Help Flag**
+- **Return to My Help Flag**, while their flag is up, in case they've wandered off
 - **Place or Move My Marker** (or **Visit a Build** during a showcase)
 - **Return to My Build**
 - **Ask to Visit Someone**, when teleport requests are on
@@ -184,8 +187,11 @@ Change the weather and time of day for the world.
 
 Any teacher can open this menu.
 
-- **Assign as Teacher:** Gives someone full control, including this menu. The person who first opened the world can't be removed here.
-- **Add Helpers:** Adds **Help Requests** to a student's Student Tools. Helpers are still students, so class-wide tools apply to them, and they can't open the toolbox.
+Everything is on one screen:
+
+- **Helper switches:** Each student has a switch. On means they're a helper, off means they aren't. Helpers who are offline are listed too, so you can switch them off. Helpers get **Help Requests** in Student Tools. They're still students, so class-wide tools apply to them, and they can't open the toolbox.
+- **Teacher switches:** Each assigned teacher has a switch, which is on. Switch it off to remove the role. The person who first opened the world isn't listed and can't be removed.
+- **Make someone a teacher:** Choose a student to give them full control, including this screen.
 
 Removing the teacher role also takes the toolbox, including from someone who's offline when they return.
 
@@ -200,7 +206,7 @@ Removing the teacher role also takes the toolbox, including from someone who's o
 
 Teachers can use I Need Help to demonstrate it to the class.
 
-Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged. A locked helper can still go: while helping, they share the student's locked area, or stay within 20 blocks of the flag if the student isn't locked, then return to their own area when finished. Only make someone a helper if you trust them with this. Help visits are added to the Behaviour Log.
+Each helper handles one student at a time. A request goes back in the list if the helper leaves, loses the role, or hasn't finished after 5 minutes. Waiting students are reminded to helpers every minute. Helpers in Focus Mode aren't pinged. A locked helper can still go: while helping, they share the student's locked area, or stay within 20 blocks of the flag if the student isn't locked. When they finish, they're put back in their own area. Only make someone a helper if you trust them with this. Help visits are added to the Behaviour Log.
 
 Helpers can only teleport to students with a help flag up. Teach them to explain or show, rather than change another student's build.
 
@@ -210,7 +216,9 @@ Helpers can only teleport to students with a help flag up. Teach them to explain
 
 **Allow Teleport Requests** turns this on for students, and **Stop Teleport Requests** turns it off.
 
-While it's on, **Student Tools** includes **Ask to Visit Someone**. Choose another student's character or build. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
+While it's on, **Student Tools** includes **Ask to Visit Someone**. Students choose **Go to Ben** to teleport to the person, or **Visit Ben's build** to go to their marker. A build only appears once its owner has placed a marker and is online, because they have to say yes. Nothing happens unless that student chooses **Yes, Allow**. Closing the question counts as no.
+
+When you choose **Stop Teleport Requests**, or a timer does it, every student who visited someone is sent back to their own build. Anyone without a marker stays put, and you're told who.
 
 Students can ask once every 20 seconds. Students in Focus Mode or locked to an area can't visit, and teachers can't be requested. Approved visits are added to the Behaviour Log.
 

@@ -108,6 +108,19 @@ export class HelpService implements Module {
 		return this.requests.some((r) => r.id === playerId);
 	}
 
+	/** Takes the player back to their own help flag. */
+	returnToFlag(player: Player): void {
+		const request = this.requests.find((r) => r.id === player.id);
+		if (!request) {
+			player.sendMessage("§eYour help flag has gone.");
+			return;
+		}
+		player.teleport(request.location, {
+			dimension: world.getDimension(request.dimensionId),
+		});
+		player.sendMessage("§aYou're back at your help flag.");
+	}
+
 	/** Puts the player's help flag up, or takes it down. */
 	toggleFlag(player: Player): void {
 		if (this.isFrozen(player.id)) return;

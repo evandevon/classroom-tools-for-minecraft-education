@@ -1,20 +1,40 @@
-import { Player, system, Vector3, world } from "@minecraft/server";
-import { Polyfill, Vec3 } from "@bedrock-oss/bedrock-boost";
-import { LockPlayerService } from "./lock_player.service.ts";
+import {
+	EntityRideableComponent,
+	EntityRidingComponent,
+	Player,
+	system,
+	Vector3,
+	world,
+} from "@minecraft/server";
+import { Vec3 } from "@bedrock-oss/bedrock-boost";
+import { ActiveArea, LockPlayerService } from "./lock_player.service.ts";
 
-/** Keeps locked students inside their area: a push first, then a teleport. */
+/**
+ * Keeps locked students inside their area. Anyone found outside is put back
+ * straight away at the last safe spot inside, so the edge acts like a wall.
+ * This doesn't rely on knockback, which armour, riding and flying can weaken.
+ */
 export class LockPlayerMechanic {
-	private static readonly MAX_IMPULSE = 2;
-	private static readonly IMPULSE_BUFFER_ZONE = 8;
 	private static readonly SPHERE_POINTS_COUNT = 3000;
 	private static readonly SPHERE_POINTS_RADIUS = 3;
+	private static readonly MAX_POINTS = 6000;
+	/** Returns within this many ticks count as pushing against the edge. */
+	private static readonly REPEAT_WINDOW = 40;
+	private static readonly REPEATS_BEFORE_CENTRE = 5;
+	private static readonly ALERT_WINDOW = 60 * 20;
+	private static readonly ALERT_AFTER = 5;
+	private static readonly ALERT_GAP = 120 * 20;
 
 	private activeBoundaryJobs: Map<string, number> = new Map();
 	private tickCount = 0;
+	private readonly lastInside = new Map<
+		string,
+		{ location: Vector3; dimensionId: string }
+	>();
+	private readonly returns = new Map<string, number[]>();
+	private readonly lastAlert = new Map<string, number>();
 
-	constructor(private readonly service: LockPlayerService) {
-		Polyfill.installPlayer();
-	}
+	constructor(private readonly service: LockPlayerService) {}
 
 	initialize(): void {
 		system.runInterval(() => this.tick(), 1);
@@ -23,96 +43,133 @@ export class LockPlayerMechanic {
 	tick(): void {
 		const everySecond = this.tickCount++ % 20 === 0;
 		if (everySecond) {
-			const ended = this.service.getEntries().sweep();
-			this.service.logEnded(ended.names, ended.everybody);
-			if (ended.everybody) {
-				this.service.students.notifyTeacher("§eLock time is up for everybody.");
+			try {
+				const ended = this.service.getEntries().sweep();
+				this.service.logEnded(ended.names, ended.everybody);
+				if (ended.everybody) {
+					this.service.students.notifyTeacher("§eLock time is up for everybody.");
+				}
+				if (ended.names.length) {
+					this.service.students.notifyTeacher(
+						`§eLock time is up: ${ended.names.join(", ")}`,
+					);
+				}
+				this.service.forgetUnusedCentres();
+			} catch (e) {
+				console.warn(`Lock housekeeping failed: ${e}`);
 			}
-			if (ended.names.length) {
-				this.service.students.notifyTeacher(
-					`§eLock time is up: ${ended.names.join(", ")}`,
-				);
-			}
-			this.service.forgetUnusedCentres();
 		}
-		if (this.service.getEntries().isEmpty()) return;
+		if (this.service.getEntries().isEmpty()) {
+			this.lastInside.clear();
+			return;
+		}
 
 		for (const player of world.getAllPlayers()) {
-			if (this.service.students.isStaff(player.id)) continue;
 			// One student's error must never stop the others being handled.
 			try {
-				const entry = this.service.getEntries().effective(player.id);
-				if (!entry) continue;
-				const area = this.service.getActiveArea(player, entry.data);
-				if (!area) continue;
-				if (player.dimension.id !== area.dimensionId) {
-					this.teleportBack(player, area.center, area.dimensionId);
+				const entry = this.service.students.isStaff(player.id)
+					? undefined
+					: this.service.getEntries().effective(player.id);
+				if (!entry) {
+					this.lastInside.delete(player.id);
 					continue;
 				}
-				this.keepInside(player, area.center, area.radius, area.showBoundary, area.dimensionId);
+				const area = this.service.getActiveArea(player, entry.data);
+				if (area) this.enforce(player, area);
 			} catch (e) {
 				console.warn(`Lock failed for ${player.name}: ${e}`);
 			}
 		}
 	}
 
-	private keepInside(
-		player: Player,
-		center: Vector3,
-		radius: number,
-		showBoundary: boolean,
-		dimensionId: string,
-	): void {
-		const distance = Vec3.from(player.location).distance(center);
-		const activation = Math.max(
-			LockPlayerMechanic.SPHERE_POINTS_RADIUS,
-			radius / 5,
-		);
-		if (showBoundary && radius - distance < activation) {
-			this.displayBoundary(player, { center, radius });
-		}
-		if (distance <= radius) return;
-
-		if (distance < radius + LockPlayerMechanic.IMPULSE_BUFFER_ZONE) {
-			try {
-				this.push(player, center);
-				return;
-			} catch (e) {
-				console.warn(`Push failed for ${player.name}, teleporting: ${e}`);
+	private enforce(player: Player, area: ActiveArea): void {
+		const sameDimension = player.dimension.id === area.dimensionId;
+		const distance = sameDimension
+			? Vec3.from(player.location).distance(area.center)
+			: Infinity;
+		if (distance <= area.radius) {
+			// Remember a spot with a little room to spare, to return them to.
+			const margin = Math.min(1, area.radius / 4);
+			if (distance <= area.radius - margin) {
+				this.lastInside.set(player.id, {
+					location: { ...player.location },
+					dimensionId: player.dimension.id,
+				});
 			}
-		}
-		this.teleportBack(player, center, dimensionId);
-	}
-
-	private push(player: Player, center: Vector3): void {
-		const cap = (v: number) =>
-			Math.max(
-				Math.min(v, LockPlayerMechanic.MAX_IMPULSE),
-				-LockPlayerMechanic.MAX_IMPULSE,
+			const activation = Math.max(
+				LockPlayerMechanic.SPHERE_POINTS_RADIUS,
+				area.radius / 5,
 			);
-		player.applyImpulse({
-			x: cap((center.x - player.location.x) * 0.1),
-			y: 0.2,
-			z: cap((center.z - player.location.z) * 0.1),
-		});
-		player.onScreenDisplay.setActionBar([
-			{ translate: "edu_tools.actionbar.lock_player.too_far_push" },
-		]);
+			if (area.showBoundary && area.radius - distance < activation) {
+				this.displayBoundary(player, area);
+			}
+			return;
+		}
+		this.sendBack(player, area);
 	}
 
-	private teleportBack(
-		player: Player,
-		center: Vector3,
-		dimensionId: string,
-	): void {
-		player.teleport(center, {
-			dimension: world.getDimension(dimensionId),
+	private sendBack(player: Player, area: ActiveArea): void {
+		const now = system.currentTick;
+		const recent = (this.returns.get(player.id) ?? []).filter(
+			(t) => now - t < LockPlayerMechanic.ALERT_WINDOW,
+		);
+		recent.push(now);
+		this.returns.set(player.id, recent);
+
+		const last = this.lastInside.get(player.id);
+		const repeats = recent.filter(
+			(t) => now - t < LockPlayerMechanic.REPEAT_WINDOW,
+		).length;
+		const toLastSpot = !!last &&
+			last.dimensionId === area.dimensionId &&
+			Vec3.from(last.location).distance(area.center) <= area.radius &&
+			repeats <= LockPlayerMechanic.REPEATS_BEFORE_CENTRE;
+
+		this.dismount(player);
+		player.teleport(toLastSpot ? last!.location : area.center, {
+			dimension: world.getDimension(area.dimensionId),
 			rotation: player.getRotation(),
 		});
-		player.sendMessage({
-			translate: "edu_tools.message.lock_player.too_far_teleport_center",
-		});
-		player.playSound("mob.endermen.portal");
+		if (toLastSpot) {
+			player.onScreenDisplay.setActionBar([
+				{ translate: "edu_tools.actionbar.lock_player.too_far_push" },
+			]);
+		} else {
+			this.lastInside.delete(player.id);
+			player.sendMessage({
+				translate: "edu_tools.message.lock_player.too_far_teleport_center",
+			});
+			player.playSound("mob.endermen.portal");
+		}
+		this.maybeAlert(player, recent.length, now);
+	}
+
+	/** Teleporting can fail while riding a boat, minecart or animal. */
+	private dismount(player: Player): void {
+		try {
+			const riding = player.getComponent("minecraft:riding") as
+				| EntityRidingComponent
+				| undefined;
+			const vehicle = riding?.entityRidingOn;
+			if (!vehicle) return;
+			(vehicle.getComponent("minecraft:rideable") as
+				| EntityRideableComponent
+				| undefined)?.ejectRider(player);
+		} catch (e) {
+			console.warn(`Could not dismount ${player.name}: ${e}`);
+		}
+	}
+
+	/** Tells teachers when a student keeps ending up outside their area. */
+	private maybeAlert(player: Player, count: number, now: number): void {
+		if (count < LockPlayerMechanic.ALERT_AFTER) return;
+		const last = this.lastAlert.get(player.id);
+		if (last !== undefined && now - last < LockPlayerMechanic.ALERT_GAP) return;
+		this.lastAlert.set(player.id, now);
+		this.service.students.notifyTeacher(
+			`§e${player.name} keeps going past the edge of their locked area.`,
+		);
+		this.service.logEvent(player.name, "Kept going past the lock edge");
 	}
 
 	displayBoundary(player: Player, lockSettings: { center: Vector3; radius: number }): void {
@@ -137,9 +194,9 @@ export class LockPlayerMechanic {
 		const distanceFromEdge = radius - playerDistance;
 
 		// Calculate dynamic sphere points count with radius scaling
-		const dynamicPointsCount = this.calculateDynamicPointsCount(
-			distanceFromEdge,
-			radius,
+		const dynamicPointsCount = Math.min(
+			LockPlayerMechanic.MAX_POINTS,
+			this.calculateDynamicPointsCount(distanceFromEdge, radius),
 		);
 
 		const spherePoints = this.generateSpherePoints(

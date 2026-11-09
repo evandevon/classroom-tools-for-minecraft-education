@@ -192,4 +192,4 @@ edu_tools.ui.student_menu.visit=Ask to Visit Someone
 edu_tools.ui.student_menu.showcase_visit=Visit a Build
 edu_tools.ui.student_menu.help_requests=Help Requests
 edu_tools.ui.build_markers.empty=No markers have been placed yet. Use Student Tools to place one.
-pack.name=Classroom Tools v1.13.0
+pack.name=Classroom Tools v1.14.0

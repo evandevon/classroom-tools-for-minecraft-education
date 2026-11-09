@@ -39,6 +39,13 @@ export class StudentMenuScene extends ActionUIScene {
 			() => help.toggleFlag(player),
 			"textures/edu_tools/ui/main/help_flag",
 		);
+		if (help.hasFlag(player.id)) {
+			this.addButton(
+				"edu_tools.ui.student_menu.return_flag",
+				() => help.returnToFlag(player),
+				"textures/edu_tools/ui/main/help_flag",
+			);
+		}
 
 		if (showcase?.isActive()) {
 			this.addButton(

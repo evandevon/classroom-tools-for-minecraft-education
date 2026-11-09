@@ -48,6 +48,11 @@ export class LockPlayerService implements Module {
 	private readonly entries = new TimedEntries<LockData>(world, "lock_state");
 	private readonly mechanic = new LockPlayerMechanic(this);
 	private ownCentres: SavedCentres = {};
+	/** Where each leader was last seen, in case they briefly go offline. */
+	private readonly leaderSeen = new Map<
+		string,
+		{ center: Vector3; dimensionId: string }
+	>();
 	students!: StudentsService;
 
 	constructor(private readonly moduleManager: ModuleManager) {}
@@ -113,6 +118,10 @@ export class LockPlayerService implements Module {
 		const note = `${describeMinutes(minutes)}, ${data.radius} blocks`;
 		if (selection.everybody) this.log("Everybody", "Locked", note);
 		else for (const p of selection.players) this.log(p.name, "Locked", note);
+	}
+
+	logEvent(who: string, what: string): void {
+		this.log(who, what);
 	}
 
 	private log(who: string, what: string, note?: string): void {
@@ -194,9 +203,16 @@ export class LockPlayerService implements Module {
 			const leader = data.followId
 				? world.getEntity(data.followId) as Player | undefined
 				: undefined;
-			return leader
-				? { center: leader.location, dimensionId: leader.dimension.id }
-				: undefined;
+			if (leader) {
+				const here = {
+					center: { ...leader.location },
+					dimensionId: leader.dimension.id,
+				};
+				this.leaderSeen.set(leader.id, here);
+				return here;
+			}
+			// Keep the area where the leader was, rather than setting students free.
+			return data.followId ? this.leaderSeen.get(data.followId) : undefined;
 		}
 		let own = this.ownCentres[player.id];
 		if (!own) {
