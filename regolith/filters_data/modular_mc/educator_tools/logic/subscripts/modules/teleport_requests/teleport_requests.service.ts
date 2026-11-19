@@ -88,7 +88,11 @@ export class TeleportRequestsService implements Module {
 					: "§eTeleport requests have been turned off.",
 			);
 		}
-		if (!active) this.returnVisitors();
+		if (!active) {
+			this.returnVisitors();
+			this.moduleManager.getModule<Module & { clearVisits(): void }>("protected_areas")
+				?.clearVisits();
+		}
 		world.setDynamicProperty(VISITORS_KEY, undefined);
 	}
 
@@ -260,6 +264,9 @@ export class TeleportRequestsService implements Module {
 				marker!,
 			);
 		} else {
+			this.moduleManager.getModule<
+				Module & { allowVisit(visitorId: string, hostId: string): void }
+			>("protected_areas")?.allowVisit(from.id, to.id);
 			from.teleport(to.location, { dimension: to.dimension });
 		}
 		this.addVisitor(from.id);

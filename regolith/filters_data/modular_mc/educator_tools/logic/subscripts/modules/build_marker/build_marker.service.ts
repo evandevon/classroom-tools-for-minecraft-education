@@ -199,7 +199,13 @@ export class BuildMarkerService implements Module {
 	}
 
 	teleportSelection(selection: Selection, marker: BuildMarker): void {
+		// Being sent to a build counts as an invitation, so keep-out allows it.
+		const ownerId = this.getMarkers().find((m) => m.marker === marker)?.studentId;
+		const areas = this.moduleManager.getModule<
+			Module & { allowVisit(visitorId: string, hostId: string): void }
+		>("protected_areas");
 		for (const { id } of selection.players) {
+			if (ownerId) areas?.allowVisit(id, ownerId);
 			(world.getEntity(id) as Player | undefined)?.teleport(marker.location, {
 				dimension: world.getDimension(marker.dimensionId),
 			});

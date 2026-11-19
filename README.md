@@ -98,6 +98,27 @@ Choose students, then set:
 
 **Unlock Students** releases some students, and **Unlock Everybody** appears on the main menu when anyone is locked. Your settings are remembered for next time.
 
+### Protected Areas
+
+**Why:** A lock keeps a student in one place, but often you only need them to stay away from things: other students' builds, or a space you're setting up. Protected Areas lets students roam freely while keeping them out of where they shouldn't be.
+
+**Keep Students Out of Other Builds:** Choose students or **Everybody**, how long, and how big each build is. Each build is a circle around its owner's marker, from the bottom of the world to the top. Students can go anywhere except other people's builds. Where two builds overlap, the ground is split down the middle. Build edges show as green particles when someone is close.
+
+Students can still go into another build when:
+
+- the owner says yes to a teleport request (for 10 minutes, or until you stop requests)
+- you send them there from **Build Markers**
+- a showcase is running
+- they're a helper answering that student's help flag
+
+Students without a marker have no build of their own to protect, and you're told who they are.
+
+**Make a Teacher-Only Area Here:** Makes a circle around where you're standing that only teachers can enter, from the bottom of the world to the top. Helpers and students are kept out, and anyone inside is moved out. The edge shows as blue particles, so it looks different from the red edge of a lock. Use **Remove Teacher-Only Areas** to switch areas off. Teacher-only areas stay until you remove them, including during a showcase.
+
+Anyone who gets in, by walking, flying, riding or an Ender Pearl, is put straight back at their last allowed spot. Riders are taken off their boat, minecart or animal first. If a student keeps trying, you get a message and it's added to the Behaviour Log. Students in Focus Mode are left where they are.
+
+These areas only control where students can stand. Students can still reach across an edge with a tool, and fire, lava, water and explosions don't stop at it. See [Stopping students getting around it](#stopping-students-getting-around-it).
+
 ### Timer
 
 **Why:** A visible countdown helps students manage their own time and reduces "how long left?" questions. The end actions turn routines into something that happens automatically, so pack-up time or the showcase starts on time even when you're busy helping someone.
@@ -243,6 +264,12 @@ The add-on's limits only work if students don't have more power than it does. St
 
 Focus Mode and locks reapply if a student leaves and rejoins, but they only affect Minecraft, not other apps on the computer.
 
+**Fire, lava and explosions:** Locks and protected areas control where students stand, not what they can affect. A student at an edge can still use flint and steel or a bucket of lava a few blocks across it, and fire, lava, water and explosions can cross edges. Minecraft already has settings for this in the world's settings:
+
+- **Fire Spreads** off (the `doFireTick` game rule) stops fire spreading and burning blocks away.
+- **TNT Explodes** off stops TNT damage.
+- **Allow**, **Deny** and **Border** blocks, from the Minecraft Education inventory, control where students can build and break.
+
 ## Exporting or sharing a world
 
 Exporting a world as a `.mcworld` file normally includes its active packs. Test the import before relying on this.
@@ -290,7 +317,7 @@ Use `simple_build`, not the upstream Regolith setup or GitHub release workflows,
 
 **Removed:** teams, nicknames, assignments, inventory tools, health tools, classroom limitations, world settings, feedback prompts, letter blocks and translations other than English.
 
-**Added:** a main teacher with optional extra teachers and student helpers, a student picker with Everybody, time limits for Focus Mode and locks, chat muting, warnings, a Student Tools item for everybody, build markers, help flags, teleport requests, Showcase, a behaviour log, an on-screen timer with actions when time is up, and a world spawn button.
+**Added:** a main teacher with optional extra teachers and student helpers, a student picker with Everybody, time limits for Focus Mode and locks, protected builds and teacher-only areas, chat muting, warnings, a Student Tools item for everybody, build markers, help flags, teleport requests, Showcase, a behaviour log, an on-screen timer with actions when time is up, and a world spawn button.
 
 ## Licence
 

@@ -17,6 +17,7 @@ import { PlayerStatusService } from "./modules/player_status/player_status.servi
 import { FocusModeService } from "./modules/focus_mode/focus_mode.service.ts";
 import { EnvironmentService } from "./modules/environment/environment.service.ts";
 import { LockPlayerService } from "./modules/lock_player/lock_player.service.ts";
+import { ProtectedAreasService } from "./modules/protected_areas/protected_areas.service.ts";
 import { TimerService } from "./modules/timer/timer.service.ts";
 
 /**
@@ -84,6 +85,7 @@ export class ModuleManager {
 		this.registerModule(new BuildMarkerService(this));
 		this.registerModule(new ShowcaseService(this));
 		this.registerModule(new HelpService(this));
+		this.registerModule(new ProtectedAreasService(this));
 		this.registerModule(new TeleportRequestsService(this));
 		this.registerModule(new TeleportService(this));
 		this.registerModule(new GamemodeService(this));
