@@ -28,6 +28,7 @@ Classroom Tools is a modified version of [Educator Tools](https://github.com/Sha
 - [Troubleshooting](#troubleshooting)
 - [Building from source](#building-from-source)
 - [What changed from Educator Tools](#what-changed-from-educator-tools)
+- [Future features](FUTURE_FEATURES.md)
 - [Licence](#licence)
 
 ## Install
